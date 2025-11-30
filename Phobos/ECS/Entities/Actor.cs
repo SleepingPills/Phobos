@@ -12,7 +12,7 @@ public class Actor(BotOwner bot) : IEquatable<Actor>
     public readonly int SquadId = bot.BotsGroup.Id;
     public readonly BotOwner Bot = bot;
     
-    public readonly Objective Objective = new();
+    public readonly ActorTask Task = new();
     public readonly Routing Routing = new();
     
     public bool IsActive => !Suspended && !Paused;
@@ -25,6 +25,13 @@ public class Actor(BotOwner bot) : IEquatable<Actor>
             return false;
 
         return _id == other._id;
+    }
+    
+    public override bool Equals(object obj)
+    {
+        if (obj is null) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        return obj.GetType() == GetType() && Equals((Actor)obj);
     }
 
     public override int GetHashCode()

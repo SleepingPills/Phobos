@@ -7,7 +7,7 @@ namespace Phobos.ECS.Entities;
 
 public class Squad(int id) : IEquatable<Squad>
 {
-    public readonly Objective Objective = new();
+    public readonly SquadTask Task = new();
     public readonly List<Actor> Members = [];
     
     private readonly int _id = id;
@@ -30,6 +30,13 @@ public class Squad(int id) : IEquatable<Squad>
             return false;
 
         return _id == other._id;
+    }
+    
+    public override bool Equals(object obj)
+    {
+        if (obj is null) return false;
+        if (ReferenceEquals(this, obj)) return true;
+        return obj.GetType() == GetType() && Equals((Squad)obj);
     }
 
     public override int GetHashCode()

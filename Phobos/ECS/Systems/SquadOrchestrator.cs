@@ -15,14 +15,19 @@ public class SquadOrchestrator(ObjectiveSystem objectiveSystem, ObjectiveQueue o
     private readonly List<Squad> _emptySquads = [];
     private readonly Dictionary<int, Squad> _squadIdMap = new();
     
-    private readonly SquadObjectiveSystem _squadsObjectiveSystem = new(objectiveSystem, objectiveQueue);
+    private readonly SquadTaskSystem _squadsTaskSystem = new(objectiveSystem, objectiveQueue);
 
+    public Squad GetSquad(int squadId)
+    {
+        return _squadIdMap[squadId];
+    }
+    
     public void Update()
     {
         if (_pacing.Blocked())
             return;
         
-        _squadsObjectiveSystem.Update(_squads);
+        _squadsTaskSystem.Update(_squads);
     }
 
     public void AddActor(Actor actor)

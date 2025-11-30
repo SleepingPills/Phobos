@@ -27,15 +27,19 @@ internal class DummyAction(BotOwner botOwner) : CustomLogic(botOwner)
 
 public class PhobosLayer : CustomLayer
 {
-    public const string LayerName = "PhobosLayer";
+    private const string LayerName = "PhobosLayer";
 
     private readonly SystemOrchestrator _systemOrchestrator;
     private readonly Actor _actor;
+    private readonly Squad _squad;
     
     public PhobosLayer(BotOwner botOwner, int priority) : base(botOwner, priority)
     {
         _systemOrchestrator = Singleton<SystemOrchestrator>.Instance;
+        
         _actor = new Actor(botOwner);
+        _systemOrchestrator.AddActor(_actor);
+        _squad = _systemOrchestrator.SquadOrchestrator.GetSquad(_actor.SquadId);
         
         // Have to turn this off otherwise bots will be deactivated far away.
         botOwner.StandBy.CanDoStandBy = false;
@@ -51,7 +55,6 @@ public class PhobosLayer : CustomLayer
 
     public override void Start()
     {
-        _systemOrchestrator.AddActor(_actor);
     }
     
     public override void Stop()
@@ -68,15 +71,6 @@ public class PhobosLayer : CustomLayer
 
     public override bool IsActive()
     {
-        // ReSharper disable once InvertIf
-        if (_paused)
-        {
-            if (_pauseTimer - Time.time > 0)
-                return false;
-
-            _paused = false;
-        }
-        
         return true;
 
         // var isHealing = false;
@@ -106,9 +100,11 @@ public class PhobosLayer : CustomLayer
 
     public override void BuildDebugText(StringBuilder sb)
     {
+        sb.AppendLine("*** Actor ***");
         sb.AppendLine($"{_actor}, active: {_actor.IsActive}, paused: {_actor.Paused}, suspended: {_actor.Suspended}");
-        sb.AppendLine($"{_actor.Objective}");
-        sb.AppendLine($"{_actor.Routing}");
+        sb.AppendLine($"{_actor.Task}, {_actor.Routing}");
+        sb.AppendLine("*** Squad ***");
+        sb.AppendLine($"{_squad}, size: {_squad.Count}, {_squad.Task}");
         sb.AppendLine($"Standby: {BotOwner.StandBy.StandByType} candostandby: {BotOwner.StandBy.CanDoStandBy}");
         sb.AppendLine(
             $"CurPath: {BotOwner.Mover.ActualPathController.CurPath} progress {BotOwner.Mover.ActualPathController.CurPath?.CurIndex}/{BotOwner.Mover.ActualPathController.CurPath?.Length}"

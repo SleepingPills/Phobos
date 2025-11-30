@@ -6,20 +6,21 @@ using Phobos.Objectives;
 
 namespace Phobos.ECS;
 
+// ReSharper disable MemberCanBePrivate.Global
 public class SystemOrchestrator : IActorSystem
 {
-    private readonly MovementSystem _movementSystem;
-    private readonly ObjectiveSystem _objectiveSystem;
-    private readonly SquadOrchestrator _squadOrchestrator;
+    public readonly MovementSystem MovementSystem;
+    public readonly ObjectiveSystem ObjectiveSystem;
+    public readonly SquadOrchestrator SquadOrchestrator;
     private readonly List<IActorSystem> _systems;
 
     public SystemOrchestrator(NavJobExecutor navJobExecutor, ObjectiveQueue objectiveQueue)
     {
-        _movementSystem = new MovementSystem(navJobExecutor);
-        _objectiveSystem = new ObjectiveSystem(_movementSystem);
-        _squadOrchestrator = new SquadOrchestrator(_objectiveSystem, objectiveQueue);
+        MovementSystem = new MovementSystem(navJobExecutor);
+        ObjectiveSystem = new ObjectiveSystem(MovementSystem);
+        SquadOrchestrator = new SquadOrchestrator(ObjectiveSystem, objectiveQueue);
 
-        _systems = [_movementSystem, _objectiveSystem, _squadOrchestrator];
+        _systems = [MovementSystem, ObjectiveSystem, SquadOrchestrator];
     }
 
     public void AddActor(Actor actor)
@@ -40,8 +41,8 @@ public class SystemOrchestrator : IActorSystem
 
     public void Update()
     {
-        _squadOrchestrator.Update();
-        _objectiveSystem.Update();
-        _movementSystem.Update();
+        SquadOrchestrator.Update();
+        ObjectiveSystem.Update();
+        MovementSystem.Update();
     }
 }

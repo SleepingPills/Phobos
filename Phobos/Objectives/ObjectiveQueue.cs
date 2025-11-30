@@ -1,29 +1,34 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using EFT.Interactive;
+using Phobos.Diag;
 using UnityEngine;
 using UnityEngine.AI;
+using Object = UnityEngine.Object;
+using Random = UnityEngine.Random;
 
 namespace Phobos.Objectives;
 
 public class ObjectiveQueue
 {
-    private readonly Queue<Location> _queue;
+    private readonly Queue<Objective> _queue;
+    private readonly HashSet<ValueTuple<LocationCategory, string>> _dupeCheck = new ();
 
     public ObjectiveQueue()
     {
         var objectives = Collect();
         Shuffle(objectives);
-        _queue = new Queue<Location>(objectives);
+        _queue = new Queue<Objective>(objectives);
     }
 
-    public Location Next()
+    public Objective Next()
     {
         var objective = _queue.Dequeue();
         _queue.Enqueue(objective);
         return objective;
     }
     
-    private static void Shuffle(List<Location> objectives)
+    private static void Shuffle(List<Objective> objectives)
     {
         // Fisher-Yates in-place shuffle
         for (var i = 0; i < objectives.Count; i++)
@@ -33,18 +38,19 @@ public class ObjectiveQueue
         }
     }
     
-    private static List<Location> Collect()
+    private List<Objective> Collect()
     {
-        var collection = new List<Location>();
+        var collection = new List<Objective>();
 
-        Plugin.Log.LogInfo("Collecting quests POIs");
+        DebugLog.Write("Collecting quests POIs");
 
         foreach (var trigger in Object.FindObjectsOfType<TriggerWithId>())
         {
             if (trigger.transform == null)
                 continue;
-            
-            AddValid(collection, trigger.name, LocationCategory.Quest, trigger.transform.position);
+
+            var objectiveId = (LocationCategory.Quest, trigger.name);
+            AddValid(collection, objectiveId, trigger.transform.position);
         }
         
         foreach (var container in Object.FindObjectsOfType<LootableContainer>())
@@ -52,22 +58,31 @@ public class ObjectiveQueue
             if (container.transform == null || !container.enabled || container.Template == null)
                 continue;
             
-            AddValid(collection, container.name, LocationCategory.ContainerLoot, container.transform.position);
+            var objectiveId = (LocationCategory.ContainerLoot, container.name);
+            AddValid(collection, objectiveId, container.transform.position);
         }
+        
+        DebugLog.Write($"Collected {collection.Count} points of interest");
         
         return collection;
     }
 
-    private static void AddValid(List<Location> collection, string name, LocationCategory category, Vector3 position)
+    private void AddValid(List<Objective> collection, ValueTuple<LocationCategory, string> id, Vector3 position)
     {
+        if (!_dupeCheck.Add(id))
+        {
+            DebugLog.Write($"Objective {id} skipped as duplicate");
+            return;
+        }
+        
         if (NavMesh.SamplePosition(position, out var target, 10, NavMesh.AllAreas))
         {
-            collection.Add(new Location(name, category, position));
-            Plugin.Log.LogInfo($"{category} added as location: {name}");
+            collection.Add(new Objective(id, target.position));
+            DebugLog.Write($"Objective {id} added as location");
         }
         else
         {
-            Plugin.Log.LogInfo($"{category} too far from navmesh: {name}");
+            DebugLog.Write($"Objective {id} too far from navmesh");
         }
     }
 }
