@@ -13,9 +13,7 @@ namespace Phobos.ECS.Systems;
 public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
 {
     private const float SqrDistanceEpsilon = 5f * 5f;
-    private const int FramePacingInterval = 5;
 
-    private readonly FramePacing _framePacing = new(FramePacingInterval);
     private readonly Queue<ValueTuple<Actor, NavJob>> _pathJobs = new(20);
 
     public void MoveTo(Actor actor, Vector3 destination)
@@ -28,20 +26,6 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
 
     public void Update()
     {
-        // Update the status on every frame
-        for (var i = 0; i < Actors.Count; i++)
-        {
-            var actor = Actors[i];
-
-            if (!actor.IsActive)
-                continue;
-
-            UpdateStatus(actor);
-        }
-
-        if (_framePacing.Blocked())
-            return;
-
         if (_pathJobs.Count > 0)
         {
             for (var i = 0; i < _pathJobs.Count; i++)
@@ -62,7 +46,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
                 StartMovement(actor, job);
             }
         }
-
+        
         for (var i = 0; i < Actors.Count; i++)
         {
             var actor = Actors[i];
@@ -75,39 +59,30 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         }
     }
 
-    private static void UpdateStatus(Actor actor)
-    {
-        var bot = actor.Bot;
-
-        if (bot.Mover.ActualPathController.CurPath == null)
-            return;
-
-        var routing = actor.Routing;
-
-        routing.Update(actor.Bot);
-
-        if (routing.SqrDistance < SqrDistanceEpsilon)
-            routing.Status = RoutingStatus.Completed;
-    }
-
     private static void StartMovement(Actor actor, NavJob job)
     {
         var routing = actor.Routing;
         routing.Set(job);
-        actor.Bot.Mover.GoToByWay(routing.Path.Corners, 1);
+        actor.Bot.Mover.GoToByWay(job.Corners, 1);
         actor.Bot.Mover.ActualPathFinder.SlowAtTheEnd = true;
 
         // Debug
-        PathVis.Show(routing.Path.Corners, thickness: 0.1f);
+        PathVis.Show(job.Corners, thickness: 0.1f);
     }
 
     private void UpdateMovement(Actor actor)
     {
         var bot = actor.Bot;
+        var routing = actor.Routing;
 
         // Skip bots with no current pathing
-        if (bot.Mover.ActualPathController.CurPath == null)
+        if (actor.BotPath == null)
             return;
+        
+        routing.SqrDistance = (routing.Destination - bot.Position).sqrMagnitude;
+
+        if (routing.SqrDistance < SqrDistanceEpsilon)
+            routing.Status = RoutingStatus.Completed;
 
         // We'll enforce these whenever the bot is under way
         bot.SetPose(1f);
@@ -125,9 +100,9 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         }
         else
         {
-            // Make the bot look 2-3 points ahead if not running 
-            var lookIndex = Mathf.Min(actor.Routing.Path.Corners.Length - 1, actor.Routing.CurrentCorner + 2);
-            bot.Steering.LookToPoint(actor.Routing.Path.Corners[lookIndex], 520);
+            // Make the bot look 4 points ahead and chest height if not running 
+            var lookIndex = Mathf.Min(actor.BotPath.Length - 1, actor.BotPath.CurIndex + 4);
+            bot.Steering.LookToPoint(actor.BotPath.GetPoint(lookIndex) + 1.5f * Vector3.up, 520);
         }
     }
 
@@ -140,7 +115,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         var isPathSmooth = CalculatePathAngleJitter(
             bot.Mover.ActualPathController.CurPath.Vector3_0,
             bot.Mover.ActualPathController.CurPath.CurIndex
-        ) < 10f;
+        ) < 15f;
 
         return isOutside && isAbleToSprint && isPathSmooth && isFarFromDestination;
     }
