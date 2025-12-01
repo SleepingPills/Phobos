@@ -11,10 +11,10 @@ public class Actor(BotOwner bot) : IEquatable<Actor>
     
     public readonly int SquadId = bot.BotsGroup.Id;
     public readonly BotOwner Bot = bot;
-    public BotCurrentPathAbstractClass BotPath => Bot.Mover.ActualPathController.CurPath;
+    
     
     public readonly ActorTask Task = new();
-    public readonly Routing Routing = new();
+    public readonly Routing Routing = new(bot);
     
     public bool IsActive => !Suspended && !Paused;
     

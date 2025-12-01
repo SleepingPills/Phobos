@@ -107,8 +107,5 @@ public class PhobosLayer : CustomLayer
         sb.AppendLine("*** Squad ***");
         sb.AppendLine($"{_squad}, size: {_squad.Count}, {_squad.Task}");
         sb.AppendLine($"Standby: {BotOwner.StandBy.StandByType} candostandby: {BotOwner.StandBy.CanDoStandBy}");
-        sb.AppendLine(
-            $"CurPath: {BotOwner.Mover.ActualPathController.CurPath} progress {BotOwner.Mover.ActualPathController.CurPath?.CurIndex}/{BotOwner.Mover.ActualPathController.CurPath?.Length}"
-        );
     }
 }

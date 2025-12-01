@@ -9,8 +9,8 @@ public class NavJob(Vector3 origin, Vector3 destination)
     public readonly Vector3 Origin = origin;
     public readonly Vector3 Destination = destination;
     public NavMeshPathStatus Status = NavMeshPathStatus.PathInvalid;
-    public Vector3[] Corners;
-    public bool IsReady => Corners != null;
+    public Vector3[] Path;
+    public bool IsReady => Path != null;
 }
 
 public class NavJobExecutor(int batchSize = 5)
@@ -41,7 +41,7 @@ public class NavJobExecutor(int batchSize = 5)
             var job = _jobQueue.Dequeue();
             var path = new NavMeshPath();
             NavMesh.CalculatePath(job.Origin, job.Destination, NavMesh.AllAreas, path);
-            job.Corners = path.corners;
+            job.Path = path.corners;
             job.Status = path.status;
             counter++;
         }

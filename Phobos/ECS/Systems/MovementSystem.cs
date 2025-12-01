@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Phobos.Diag;
 using Phobos.ECS.Components;
 using Phobos.ECS.Entities;
-using Phobos.ECS.Helpers;
 using Phobos.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
@@ -46,7 +45,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
                 StartMovement(actor, job);
             }
         }
-        
+
         for (var i = 0; i < Actors.Count; i++)
         {
             var actor = Actors[i];
@@ -61,25 +60,24 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
 
     private static void StartMovement(Actor actor, NavJob job)
     {
-        var routing = actor.Routing;
-        routing.Set(job);
-        actor.Bot.Mover.GoToByWay(job.Corners, 1);
+        actor.Routing.Set(job);
+        actor.Bot.Mover.GoToByWay(job.Path, 1);
         actor.Bot.Mover.ActualPathFinder.SlowAtTheEnd = true;
 
         // Debug
-        PathVis.Show(job.Corners, thickness: 0.1f);
+        PathVis.Show(job.Path, thickness: 0.1f);
     }
 
-    private void UpdateMovement(Actor actor)
+    private static void UpdateMovement(Actor actor)
     {
         var bot = actor.Bot;
         var routing = actor.Routing;
 
         // Skip bots with no current pathing
-        if (actor.BotPath == null)
+        if (routing.ActualPath == null || routing.Target == null)
             return;
-        
-        routing.SqrDistance = (routing.Destination - bot.Position).sqrMagnitude;
+
+        routing.SqrDistance = (routing.Target.Position - bot.Position).sqrMagnitude;
 
         if (routing.SqrDistance < SqrDistanceEpsilon)
             routing.Status = RoutingStatus.Completed;
@@ -94,16 +92,9 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         var shouldSprint = ShouldSprint(actor);
         bot.Mover.Sprint(shouldSprint);
 
-        if (shouldSprint)
-        {
-            bot.Steering.LookToMovingDirection(520);
-        }
-        else
-        {
-            // Make the bot look 4 points ahead and chest height if not running 
-            var lookIndex = Mathf.Min(actor.BotPath.Length - 1, actor.BotPath.CurIndex + 4);
-            bot.Steering.LookToPoint(actor.BotPath.GetPoint(lookIndex) + 1.5f * Vector3.up, 520);
-        }
+        var lookPoint = CalculateForwardPointOnPath(routing.ActualPath.Vector3_0, bot.Position, routing.ActualPath.CurIndex) + 1.5f * Vector3.up;
+        bot.Steering.LookToPoint(lookPoint, 520);
+        DebugGizmos.Line(bot.Fireport.position, lookPoint, Color.blue);
     }
 
     private static bool ShouldSprint(Actor actor)
@@ -120,19 +111,71 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         return isOutside && isAbleToSprint && isPathSmooth && isFarFromDestination;
     }
 
-    private static float CalculatePathAngleJitter(Vector3[] pathCorners, int startIndex = 0, int count = 3)
+    private static Vector3 CalculateAverageForwardPosition(Vector3[] path, int startIndex = 0, int count = 2)
     {
-        // Validate inputs
-        if (pathCorners == null || pathCorners.Length < 3)
-            return 0f;
-
-        if (startIndex < 0 || startIndex >= pathCorners.Length - 2)
-            return 0f;
-
         // Clamp count to available corners
-        var maxCount = pathCorners.Length - startIndex - 2;
-        if (count > maxCount)
-            count = maxCount;
+        count = Mathf.Min(count, path.Length - startIndex - 1);
+
+        // If we have no points remaining to average over, just return the last index
+        if (count <= 0)
+            return path[^1];
+
+        var posAvg = Vector3.zero;
+
+        // Calculate angles between consecutive segments
+        for (var i = startIndex; i < startIndex + count; i++)
+        {
+            posAvg += path[i];
+        }
+
+        return posAvg / count;
+    }
+
+    private static Vector3 CalculateForwardPointOnPath(Vector3[] corners, Vector3 currentPosition, int nextCornerIndex,
+        float lookAheadDistanceSqr = 25f)
+    {
+        if (nextCornerIndex >= corners.Length)
+            return currentPosition;
+
+        // Track squared distance remaining
+        var remainingDistanceSqr = lookAheadDistanceSqr;
+        // Start from bot's current position
+        var currentPoint = currentPosition;
+        // Start checking from the next corner
+        var currentIndex = nextCornerIndex;
+
+        while (remainingDistanceSqr > 0 && currentIndex < corners.Length)
+        {
+            // Calculate vector and squared distance to the next corner
+            var toCorner = corners[currentIndex] - currentPoint;
+            var distanceToCornerSqr = toCorner.sqrMagnitude;
+
+            // If the next corner is far enough, our target point is along this segment
+            if (distanceToCornerSqr >= remainingDistanceSqr)
+            {
+                // Need actual distance for the final lerp/movement calculation
+                var remainingDistance = Mathf.Sqrt(remainingDistanceSqr);
+                return currentPoint + toCorner.normalized * remainingDistance;
+            }
+
+            // The corner is closer than our remaining distance, so "consume" this segment
+            // Subtract squared distance covered
+            remainingDistanceSqr -= distanceToCornerSqr;
+            // Jump to this corner
+            currentPoint = corners[currentIndex];
+            // Move to next corner
+            currentIndex++;
+        }
+
+        // We've run out of path - return the final corner as the furthest point
+        return corners[^1];
+    }
+
+
+    private static float CalculatePathAngleJitter(Vector3[] path, int startIndex = 0, int count = 3)
+    {
+        // Clamp count to available corners
+        count = Mathf.Min(count, path.Length - startIndex - 2);
 
         if (count <= 0)
             return 0f;
@@ -140,12 +183,11 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         var angleMax = 0f;
 
         // Calculate angles between consecutive segments
-        for (var i = 0; i < count; i++)
+        for (var i = startIndex; i < startIndex + count; i++)
         {
-            var idx = startIndex + i;
-            var pointA = pathCorners[idx];
-            var pointB = pathCorners[idx + 1];
-            var pointC = pathCorners[idx + 2];
+            var pointA = path[i];
+            var pointB = path[i + 1];
+            var pointC = path[i + 2];
 
             // Calculate direction vectors
             var directionAb = (pointB - pointA).normalized;
