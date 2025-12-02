@@ -1,6 +1,8 @@
-﻿using System.Reflection;
+﻿using System;
+using System.Reflection;
 using Comfort.Common;
 using EFT;
+using Phobos.Diag;
 using Phobos.ECS;
 using Phobos.Navigation;
 using Phobos.Objectives;
@@ -12,31 +14,49 @@ public class PhobosInitPatch : ModulePatch
 {
     protected override MethodBase GetTargetMethod()
     {
-        return typeof(GameWorld).GetMethod(nameof(GameWorld.OnGameStarted));
+        return typeof(BotsController).GetConstructor(Type.EmptyTypes);
     }
 
-    [PatchPrefix]
-    // ReSharper disable once InconsistentNaming
-    public static void Prefix(GameWorld __instance)
+    [PatchPostfix]
+    public static void Postfix()
     {
-        if (__instance is HideoutGameWorld)
-        {
-            Plugin.Log.LogInfo("Skipping Phobos in hideout");
+        // For some odd reason the constructor appears to be called twice. Prevent running the second time.
+        if (Singleton<SystemOrchestrator>.Instantiated)
             return;
-        }
-
+        
+        DebugLog.Write("Initializing Phobos");
         // Services
         var navJobExecutor = new NavJobExecutor();
         var objectiveQueue = new ObjectiveQueue();
         
         // Systems
         var systemOrchestrator = new SystemOrchestrator(navJobExecutor, objectiveQueue);
+        
+        // Registry
         Singleton<SystemOrchestrator>.Create(systemOrchestrator);
+        Singleton<NavJobExecutor>.Create(navJobExecutor);
+    }
+}
 
-        // Updater
-        var updater = __instance.gameObject.AddComponent<Updater>();
-        updater.SystemOrchestrator = systemOrchestrator;
-        updater.NavJobExecutor = navJobExecutor;
+public class PhobosFrameUpdatePatch : ModulePatch
+{
+    protected override MethodBase GetTargetMethod()
+    {
+        // According to BotsController.method_0, this is where all the bot layer and action logic runs and where the AI decisions should be made.
+        // We run before this method, so that any decision to activate/suspend our layer takes immediate effect.
+        return typeof(AICoreControllerClass).GetMethod(nameof(AICoreControllerClass.Update));
+    }
+
+    [PatchPrefix]
+    // ReSharper disable once InconsistentNaming
+    public static void Prefix(AICoreControllerClass __instance)
+    {
+        // Bool_0 seems to be an IsActive flag
+        if (!__instance.Bool_0)
+            return;
+        
+        Singleton<SystemOrchestrator>.Instance.Update();
+        Singleton<NavJobExecutor>.Instance.Update();
     }
 }
 
@@ -48,11 +68,11 @@ public class PhobosDisposePatch : ModulePatch
     }
 
     [PatchPostfix]
-    // ReSharper disable once InconsistentNaming
     public static void Prefix()
     {
         Plugin.Log.LogInfo("Disposing of static & long lived objects.");
         Singleton<SystemOrchestrator>.Release(Singleton<SystemOrchestrator>.Instance);
+        Singleton<NavJobExecutor>.Release(Singleton<NavJobExecutor>.Instance);
         Plugin.Log.LogInfo("Disposing complete.");
     }
 }

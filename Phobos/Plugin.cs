@@ -52,6 +52,7 @@ public class Plugin : BaseUnityPlugin
         // Patches
         new PhobosInitPatch().Enable();
         new PhobosDisposePatch().Enable();
+        new PhobosFrameUpdatePatch().Enable();
         
         // Misc setup
         var brains = new List<string>()

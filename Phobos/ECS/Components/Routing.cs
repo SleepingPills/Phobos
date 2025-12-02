@@ -35,6 +35,6 @@ public class Routing(BotOwner bot)
 
     public override string ToString()
     {
-        return $"Routing(Corner: {ActualPath?.CurIndex}/{ActualPath?.Length} SqrDistance: {SqrDistance}, Status: {Status})";
+        return $"Routing(HasTarget: {Target!=null} SqrDistance: {SqrDistance}, Status: {Status} Path: {ActualPath?.CurIndex}/{ActualPath?.Length})";
     }
 }
