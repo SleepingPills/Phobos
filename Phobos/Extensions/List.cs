@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using Phobos.Diag;
 
 namespace Phobos.Extensions;
 
@@ -10,7 +12,7 @@ public static class ListExtensions
         for (var i = 0; i < list.Count; i++)
         {
             var candidate = list[i];
-            if (candidate.Equals(member)) continue;
+            if (!candidate.Equals(member)) continue;
             list.RemoveAtSwap(i);
             return true;
         }
@@ -18,20 +20,8 @@ public static class ListExtensions
         return false;
     }
     
-    public static bool RemoveSwapBoxed<T>(this List<T> list, T member)
-    {
-        for (var i = 0; i < list.Count; i++)
-        {
-            var candidate = list[i];
-            if (candidate.Equals(member)) continue;
-            list.RemoveAtSwap(i);
-            return true;
-        }
-        
-        return false;
-    }
-    
-    public static void RemoveAtSwap<T>(this List<T> list, int index)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void RemoveAtSwap<T>(this List<T> list, int index)
     {
         var lastIndex = list.Count - 1;
         list[index] = list[lastIndex];

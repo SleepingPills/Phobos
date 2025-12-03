@@ -1,4 +1,5 @@
 ﻿using Phobos.Diag;
+using Phobos.ECS.Components;
 using Phobos.ECS.Entities;
 using Phobos.Objectives;
 
@@ -15,6 +16,15 @@ public class ActorTaskSystem(MovementSystem movementSystem) : BaseActorSystem
 
     public void Update()
     {
+        for (var i = 0; i < Actors.Count; i++)
+        {
+            var actor = Actors[i];
+
+            if (actor.Movement.Status == MovementStatus.Completed)
+            {
+                actor.IsPhobosActive = false;
+            }
+        }
         // TODO:
         // Track the objective for each actor, update it when finished.
         // Flag it as failed if it doesn't work for whatever reason.

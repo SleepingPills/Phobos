@@ -2,6 +2,7 @@
 using Comfort.Common;
 using DrakiaXYZ.BigBrain.Brains;
 using EFT;
+using Phobos.Diag;
 using Phobos.ECS;
 using Phobos.ECS.Entities;
 
@@ -36,31 +37,33 @@ public class PhobosLayer : CustomLayer
         botOwner.StandBy.CanDoStandBy = false;
         botOwner.StandBy.Activate();
         
-        // TODO: Expand this into the suspended detection system
-        botOwner.Brain.BaseBrain.OnLayerChangedTo += layer => Plugin.Log.LogInfo("Layer changed to " + layer.Name());
-        
         _systemOrchestrator = Singleton<SystemOrchestrator>.Instance;
         
         _actor = new Actor(botOwner);
         _systemOrchestrator.AddActor(_actor);
         _squad = _systemOrchestrator.SquadOrchestrator.GetSquad(_actor.SquadId);
+
+        botOwner.Brain.BaseBrain.OnLayerChangedTo += OnLayerChanged;
+        botOwner.GetPlayer.OnPlayerDead += OnDead;
+    }
+
+    private void OnDead(Player player, IPlayer lastAggressor, DamageInfoStruct damageInfo, EBodyPart part)
+    {
+        player.OnPlayerDead -= OnDead;
+        _actor.IsLayerActive = true;
+        _systemOrchestrator.RemoveActor(_actor);
+    }
+
+    private void OnLayerChanged(AICoreLayerClass<BotLogicDecision> layer)
+    {
+        _actor.IsLayerActive = layer.Name() == LayerName;
+        DebugLog.Write($"{_actor} layer changed to: {layer.Name()}");
     }
     
     public override string GetName()
     {
         return LayerName;
     }
-
-    public override void Start()
-    {
-    }
-    
-    public override void Stop()
-    {
-        // We died/exfilled/etc.
-        _systemOrchestrator.RemoveActor(_actor);
-    }
-
 
     public override Action GetNextAction()
     {
@@ -69,7 +72,7 @@ public class PhobosLayer : CustomLayer
 
     public override bool IsActive()
     {
-        return true;
+        return _actor.IsPhobosActive;
 
         // var isHealing = false;
         //
@@ -99,7 +102,7 @@ public class PhobosLayer : CustomLayer
     public override void BuildDebugText(StringBuilder sb)
     {
         sb.AppendLine("*** Actor ***");
-        sb.AppendLine($"{_actor}, active: {_actor.IsActive}, paused: {_actor.Paused}, suspended: {_actor.Suspended}");
+        sb.AppendLine($"{_actor}, active: {_actor.IsActive}, paused: {_actor.IsPhobosActive}, suspended: {_actor.IsLayerActive}");
         sb.AppendLine($"{_actor.Task}");
         sb.AppendLine($"{_actor.Movement}");
         sb.AppendLine($"HasEnemy: {BotOwner.Memory.HaveEnemy} UnderFire: {BotOwner.Memory.IsUnderFire}");

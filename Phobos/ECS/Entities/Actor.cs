@@ -6,8 +6,8 @@ namespace Phobos.ECS.Entities;
 
 public class Actor(BotOwner bot) : IEquatable<Actor>
 {
-    public bool Suspended;
-    public bool Paused;
+    public bool IsLayerActive = false;
+    public bool IsPhobosActive = true;
     
     public readonly int SquadId = bot.BotsGroup.Id;
     public readonly BotOwner Bot = bot;
@@ -16,7 +16,7 @@ public class Actor(BotOwner bot) : IEquatable<Actor>
     public readonly ActorTask Task = new();
     public readonly Movement Movement = new(bot);
     
-    public bool IsActive => !Suspended && !Paused;
+    public bool IsActive => IsLayerActive && IsPhobosActive;
     
     private readonly int _id = bot.Id;
 

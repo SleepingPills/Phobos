@@ -8,6 +8,7 @@ using Phobos.Objectives;
 namespace Phobos.ECS;
 
 // ReSharper disable MemberCanBePrivate.Global
+// Every AI project needs a shitty, llm generated component name like "orcehstrator".
 public class SystemOrchestrator : IActorSystem
 {
     public readonly MovementSystem MovementSystem;
@@ -29,6 +30,7 @@ public class SystemOrchestrator : IActorSystem
 
     public void AddActor(Actor actor)
     {
+        DebugLog.Write($"Adding {actor} to Phobos systems");
         for (var i = 0; i < _systems.Count; i++)
         {
             _systems[i].AddActor(actor);
@@ -37,6 +39,7 @@ public class SystemOrchestrator : IActorSystem
 
     public void RemoveActor(Actor actor)
     {
+        DebugLog.Write($"Removing {actor} from Phobos systems");
         for (var i = 0; i < _systems.Count; i++)
         {
             _systems[i].RemoveActor(actor);
