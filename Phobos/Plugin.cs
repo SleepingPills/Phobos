@@ -63,7 +63,7 @@ public class Plugin : BaseUnityPlugin
             EBrain.Assault.ToString()
         };
         
-        BrainManager.AddCustomLayer(typeof(PhobosLayer), brains,10000);
+        BrainManager.AddCustomLayer(typeof(PhobosLayer), brains,19);
 
         // This should be the new peaceful action
         // BrainManager.RemoveLayer("Utility peace", brains);

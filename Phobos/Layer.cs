@@ -58,7 +58,7 @@ public class PhobosLayer : CustomLayer
     private void OnLayerChanged(AICoreLayerClass<BotLogicDecision> layer)
     {
         _actor.IsLayerActive = layer.Name() == LayerName;
-        DebugLog.Write($"{_actor} layer changed to: {layer.Name()}");
+        DebugLog.Write($"{_actor} layer changed to: {layer.Name()} priority: {layer.Priority}");
     }
     
     public override string GetName()
@@ -84,13 +84,9 @@ public class PhobosLayer : CustomLayer
             if (BotOwner.Medecine.SurgicalKit.HaveWork)
                 isHealing |= BotOwner.Medecine.SurgicalKit.HaveWork;
         }
-        
-        var isInCombat = BotOwner.Memory.IsUnderFire || BotOwner.Memory.HaveEnemy || Time.time - BotOwner.Memory.LastEnemyTimeSeen < 30f;
-        
-        if (isHealing || isInCombat)
-            return false;
 
-        return _actor.IsPhobosActive;
+        // var isInCombat = BotOwner.Memory.IsUnderFire || (BotOwner.Memory.HaveEnemy && Time.time - BotOwner.Memory.LastEnemyTimeSeen < 10f);
+        return !isHealing && _actor.IsPhobosActive;
     }
     
     public override bool IsCurrentActionEnding()
@@ -101,7 +97,7 @@ public class PhobosLayer : CustomLayer
     public override void BuildDebugText(StringBuilder sb)
     {
         sb.AppendLine("*** Actor ***");
-        sb.AppendLine($"{_actor}, active: {_actor.IsActive}, paused: {_actor.IsPhobosActive}, suspended: {_actor.IsLayerActive}");
+        sb.AppendLine($"{_actor}");
         sb.AppendLine($"{_actor.Task}");
         sb.AppendLine($"{_actor.Movement}");
         sb.AppendLine($"HasEnemy: {BotOwner.Memory.HaveEnemy} UnderFire: {BotOwner.Memory.IsUnderFire}");

@@ -1,5 +1,4 @@
 ﻿# TODO:
-* Add actor active status management
 * Add basic objective tracking 
 * Add a mechanism to the objective system to resubmit the objective if the actor is reactivated
 * Add movement and stance status tracking to a component, so we keep track of stuff like the path angle jitter, etc.

@@ -11,7 +11,7 @@ namespace Phobos.ECS.Systems;
 
 public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
 {
-    private const int RetryLimit = 3;
+    private const int RetryLimit = 10;
 
     // If we are further than this from a corner, allow the bot to sprint even if there are sharp turns later.
     private const float SprintCancelPathCornerDistanceSqr = 10f * 10f;
@@ -37,7 +37,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
                 }
 
                 // Bail out if the actor is inactive or the pathfinding failed
-                if (!actor.IsActive || job.Status == NavMeshPathStatus.PathInvalid)
+                if (!actor.IsActive)
                     continue;
 
                 StartMovement(actor, job);
@@ -47,10 +47,16 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         for (var i = 0; i < Actors.Count; i++)
         {
             var actor = Actors[i];
-
+            
             // Bail out if the actor is inactive
             if (!actor.IsActive)
+            {
+                // Set status to suspended if we were active
+                if (actor.Movement.Status == MovementStatus.Active)
+                    actor.Movement.Status = MovementStatus.Suspended;
+                        
                 continue;
+            }
 
             UpdateMovement(actor);
         }
@@ -75,6 +81,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         var job = navJobExecutor.Submit(origin.position, destination);
         _moveJobs.Enqueue((actor, job));
         actor.Movement.Status = MovementStatus.Suspended;
+        // DebugLog.Write($"{actor} {actor.Movement} move job scheduled");
     }
 
     private static void StartMovement(Actor actor, NavJob job)
@@ -94,6 +101,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
 
         // Debug
         PathVis.Show(job.Path, thickness: 0.1f);
+        // DebugLog.Write($"{actor} {actor.Movement} movement commenced");
     }
 
     private void UpdateMovement(Actor actor)
@@ -101,8 +109,17 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         var bot = actor.Bot;
         var movement = actor.Movement;
 
-        if (movement.Status is MovementStatus.Failed or MovementStatus.Suspended)
+        if (movement.Status == MovementStatus.Failed)
             return;
+
+        if (movement.Status == MovementStatus.Suspended)
+        {
+            // If movement got suspended before, but we have a target, try to resume it
+            if (movement.Target != null)
+                MoveRetry(actor);
+
+            return;
+        }
 
         // Failsafe
         if (movement.Target == null)

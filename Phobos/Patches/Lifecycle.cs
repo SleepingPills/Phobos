@@ -47,9 +47,11 @@ public class PhobosFrameUpdatePatch : ModulePatch
         return typeof(AICoreControllerClass).GetMethod(nameof(AICoreControllerClass.Update));
     }
 
-    [PatchPrefix]
+    // Has to be a postfix otherwise weird shit happens like the AI ActualPath gets nulled out by BSG code before our layer gets deactivated
+    // causing path jobs to be resubmitted needlessly.
+    [PatchPostfix]
     // ReSharper disable once InconsistentNaming
-    public static void Prefix(AICoreControllerClass __instance)
+    public static void Postfix(AICoreControllerClass __instance)
     {
         // Bool_0 seems to be an IsActive flag
         if (!__instance.Bool_0)
@@ -68,7 +70,7 @@ public class PhobosDisposePatch : ModulePatch
     }
 
     [PatchPostfix]
-    public static void Prefix()
+    public static void Postfix()
     {
         Plugin.Log.LogInfo("Disposing of static & long lived objects.");
         Singleton<SystemOrchestrator>.Release(Singleton<SystemOrchestrator>.Instance);
