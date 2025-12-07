@@ -1,4 +1,5 @@
-﻿using EFT;
+﻿using System.Runtime.CompilerServices;
+using EFT;
 using Phobos.Navigation;
 using UnityEngine;
 
@@ -8,7 +9,6 @@ public enum MovementStatus
 {
     Suspended,
     Active,
-    Completed,
     Failed
 }
 
@@ -16,26 +16,35 @@ public class Target
 {
     public Vector3 Position;
     public float DistanceSqr;
-    public Vector3[] Path;
+
+    public override string ToString()
+    {
+        return $"Target(Dist: {Mathf.Sqrt(DistanceSqr)})";
+    }
 }
 
 public class Movement(BotOwner bot)
 {
     public MovementStatus Status = MovementStatus.Suspended;
     public Target Target;
+    public float Speed = 1f;
+    
     public int Retry = 0;
-    public BotCurrentPathAbstractClass ActualPath => bot.Mover.ActualPathController.CurPath;
+
+    public BotCurrentPathAbstractClass ActualPath
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => bot.Mover.ActualPathController.CurPath;
+    }
 
     public void Set(NavJob job)
     {
         Target ??= new Target();
         Target.Position = job.Destination;
-        Target.Path = job.Path;
     }
 
     public override string ToString()
     {
-        return
-            $"Movement(HasTarget: {Target != null} Try: {Retry} DistanceSqr: {Target?.DistanceSqr}, Status: {Status} Path: {ActualPath?.CurIndex}/{ActualPath?.Length})";
+        return $"Movement({Target} Status: {Status} Try: {Retry} Path: {ActualPath?.CurIndex}/{ActualPath?.Length})";
     }
 }

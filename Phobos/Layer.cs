@@ -102,12 +102,12 @@ public class PhobosLayer : CustomLayer
     {
         sb.AppendLine("*** Actor ***");
         sb.AppendLine($"{_actor}");
-        sb.AppendLine($"{_actor.Task}");
+        sb.AppendLine($"{_actor.Objective}");
         sb.AppendLine($"{_actor.Movement}");
         sb.AppendLine($"HasEnemy: {BotOwner.Memory.HaveEnemy} UnderFire: {BotOwner.Memory.IsUnderFire}");
         sb.AppendLine($"Pose: {BotOwner.GetPlayer.MovementContext.PoseLevel} Speed: {BotOwner.Mover?.DestMoveSpeed}");
         sb.AppendLine($"Standby: {BotOwner.StandBy.StandByType} candostandby: {BotOwner.StandBy.CanDoStandBy}");
         sb.AppendLine("*** Squad ***");
-        sb.AppendLine($"{_squad}, size: {_squad.Count}, {_squad.Task}");
+        sb.AppendLine($"{_squad}, size: {_squad.Count}, {_squad.ObjectiveLocation}");
     }
 }

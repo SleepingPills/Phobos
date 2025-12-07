@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Runtime.CompilerServices;
 using EFT;
 using Phobos.Data;
 using Phobos.ECS.Components;
@@ -15,11 +16,16 @@ public class Actor(BotOwner bot) : IEquatable<Actor>
     public readonly int SquadId = bot.BotsGroup.Id;
     public readonly BotOwner Bot = bot;
     
-    public readonly ActorTask Task = new();
+    public readonly Objective Objective = new();
     public readonly Movement Movement = new(bot);
+    public readonly Guard Guard = new();
     
-    public bool IsActive => IsLayerActive && IsPhobosActive;
-    
+    public bool IsActive
+    {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => IsLayerActive && IsPhobosActive;
+    }
+
     private readonly int _id = bot.Id;
 
     public bool Equals(Actor other)

@@ -1,4 +1,4 @@
-﻿# Squad
+﻿# Tasks
 * POI
   * Go to a randomly picked POI
   * If the actor is active but it's movement has been suspended, resubmit pathing to poi
@@ -6,9 +6,6 @@
   * If the POI has been reached, find a random spot within 4-5m meters of objective that has los on the objective, have the bot take up station there and crouch. Turn to look at random doors in the vicinity that the bot has los on, or if there are none, any visible points within 100m on the path it arrived by.
 * Assist
   * If one or more members of the squad are in combat, instruct any members not in combat to go to the nearest in-combat squad member
-
-# Actor
-
 
 # Implementation
 * Precalculate the nearby overwatch points for each objective so we don't have to do this for each bot.

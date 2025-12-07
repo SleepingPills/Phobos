@@ -2,29 +2,28 @@
 using Phobos.ECS.Entities;
 using Phobos.ECS.Systems;
 using Phobos.Navigation;
-using Phobos.Objectives;
 
 namespace Phobos.ECS;
 
 // ReSharper disable MemberCanBePrivate.Global
-// Every AI project needs a shitty, llm generated component name like "orcehstrator".
+// Every AI project needs a shitty, llm generated component name like "orchestrator".
 public class SystemOrchestrator
 {
     public readonly MovementSystem MovementSystem;
-    public readonly ActorTaskSystem ActorTaskSystem;
+    public readonly ObjectiveSystem ObjectiveSystem;
     public readonly SquadOrchestrator SquadOrchestrator;
     public readonly ActorList LiveActors;
 
-    public SystemOrchestrator(NavJobExecutor navJobExecutor, ObjectiveQueue objectiveQueue)
+    public SystemOrchestrator(NavJobExecutor navJobExecutor, LocationQueue locationQueue)
     {
         LiveActors = new ActorList(32);
         
         DebugLog.Write("Creating MovementSystem");
         MovementSystem = new MovementSystem(navJobExecutor, LiveActors);
         DebugLog.Write("Creating ActorTaskSystem");
-        ActorTaskSystem = new ActorTaskSystem(MovementSystem, LiveActors);
+        ObjectiveSystem = new ObjectiveSystem(MovementSystem);
         DebugLog.Write("Creating SquadOrchestrator");
-        SquadOrchestrator = new SquadOrchestrator(ActorTaskSystem, objectiveQueue);
+        SquadOrchestrator = new SquadOrchestrator(ObjectiveSystem, locationQueue);
     }
 
     public void AddActor(Actor actor)
@@ -43,7 +42,7 @@ public class SystemOrchestrator
     public void Update()
     {
         SquadOrchestrator.Update();
-        ActorTaskSystem.Update();
+        ObjectiveSystem.Update();
         MovementSystem.Update();
     }
 }

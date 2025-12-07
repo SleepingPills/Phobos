@@ -1,11 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Phobos.Diag;
+using Phobos.ECS.Components;
 using Phobos.ECS.Entities;
-using Phobos.Objectives;
+using Phobos.Navigation;
 
 namespace Phobos.ECS.Systems;
 
-public class SquadTaskSystem(ActorTaskSystem actorTaskSystem, ObjectiveQueue objectiveQueue)
+public class SquadTaskSystem(ObjectiveSystem objectiveSystem, LocationQueue locationQueue)
 {
     public void Update(List<Squad> squads)
     {
@@ -13,23 +15,48 @@ public class SquadTaskSystem(ActorTaskSystem actorTaskSystem, ObjectiveQueue obj
         {
             var squad = squads[i];
             
-            // If the squad has an objective, make sure all the members get it
-            if (!squad.Task.HasObjective)
+            if (squad.ObjectiveLocation == null)
             {
                 // If the squad does not have an objective yet, grab one.
-                var objective = objectiveQueue.Next();
-                squad.Task.Assign(objective);
-                DebugLog.Write($"Assigned {objective} to {squad}");
+                var location = locationQueue.Next();
+                squad.ObjectiveLocation = location;
+                DebugLog.Write($"Assigned {location} to {squad}");
             }
 
+            var finishedCount = 0;
+            
+            // If the squad has an objective, make sure all the members get it
             for (var j = 0; j < squad.Members.Count; j++)
             {
                 var member = squad.Members[j];
-                if (member.Task.HasObjective)
+                
+                if (!member.IsActive)
                     continue;
-                    
-                actorTaskSystem.AssignObjective(member, squad.Task.Objective);
+
+                switch (member.Objective.Status)
+                {
+                    case ObjectiveStatus.Suspended:
+                        objectiveSystem.BeginObjective(member, squad.ObjectiveLocation);
+                        break;
+                    case ObjectiveStatus.Active:
+                        break;
+                    case ObjectiveStatus.Completed:
+                    case ObjectiveStatus.Failed:
+                        finishedCount++;
+                        break;
+                    default:
+                        throw new ArgumentOutOfRangeException();
+                }
             }
+
+            // TODO: finish this
+            // if (finishedCount == squad.Count)
+            // {
+            //     DebugLog.Write($"{squad} objective finished, assigning new objective.");
+            //     squad.ObjectiveLocation = null;
+            // }
+            
+            // Squad members who are too far ahead will get slowed down
         }
     }
 }

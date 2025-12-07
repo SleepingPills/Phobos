@@ -15,31 +15,10 @@ public class MovementSystem(NavJobExecutor navJobExecutor, ActorList liveActors)
 {
     private const int RetryLimit = 10;
 
-    private const float TargetReachedDistanceSqr = 5f * 5f;
-    private const float TargetVicinityDistanceSqr = 35f * 35f;
-    private const float LookAheadDistanceSqr = 1.5f;
+    private const float TargetReachedDistSqr = 5f;
+    private const float LookAheadDistSqr = 1.5f;
 
     private readonly Queue<ValueTuple<Actor, NavJob>> _moveJobs = new(20);
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void MoveToDestination(Actor actor, Vector3 destination)
-    {
-        ScheduleMoveJob(actor, destination);
-        actor.Movement.Retry = 0;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void MoveRetry(Actor actor)
-    {
-        MoveRetry(actor, actor.Movement.Target.Position);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void MoveRetry(Actor actor, Vector3 destination)
-    {
-        ScheduleMoveJob(actor, destination);
-        actor.Movement.Retry++;
-    }
 
     public void Update()
     {
@@ -73,13 +52,29 @@ public class MovementSystem(NavJobExecutor navJobExecutor, ActorList liveActors)
             {
                 // Set status to suspended if we were active
                 if (actor.Movement.Status == MovementStatus.Active)
-                    actor.Movement.Status = MovementStatus.Suspended;
+                {
+                    ResetTarget(actor.Movement, MovementStatus.Suspended);
+                }
 
                 continue;
             }
 
             UpdateMovement(actor);
         }
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MoveToDestination(Actor actor, Vector3 destination)
+    {
+        ScheduleMoveJob(actor, destination);
+        actor.Movement.Retry = 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void MoveRetry(Actor actor, Vector3 destination)
+    {
+        ScheduleMoveJob(actor, destination);
+        actor.Movement.Retry++;
     }
 
     private void ScheduleMoveJob(Actor actor, Vector3 destination)
@@ -88,8 +83,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor, ActorList liveActors)
         NavMesh.SamplePosition(actor.Bot.Position, out var origin, 5f, NavMesh.AllAreas);
         var job = navJobExecutor.Submit(origin.position, destination);
         _moveJobs.Enqueue((actor, job));
-        actor.Movement.Status = MovementStatus.Suspended;
-        // DebugLog.Write($"{actor} {actor.Movement} move job scheduled");
+        ResetTarget(actor.Movement, MovementStatus.Suspended);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -97,20 +91,17 @@ public class MovementSystem(NavJobExecutor navJobExecutor, ActorList liveActors)
     {
         if (job.Status == NavMeshPathStatus.PathInvalid)
         {
-            actor.Movement.Target = null;
-            actor.Movement.Status = MovementStatus.Failed;
+            ResetTarget(actor.Movement, MovementStatus.Failed);
             return;
         }
 
-        actor.Movement.Set(job);
-        actor.Movement.Status = MovementStatus.Active;
+        AssignTarget(actor.Movement, job);
 
         actor.Bot.Mover.GoToByWay(job.Path, 2);
         actor.Bot.Mover.ActualPathFinder.SlowAtTheEnd = true;
 
         // Debug
         PathVis.Show(job.Path, thickness: 0.1f);
-        // DebugLog.Write($"{actor} {actor.Movement} movement commenced");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -123,6 +114,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor, ActorList liveActors)
         // The sprint flag has to be enforced on every frame, as the BSG code can sometimes decide to change it randomly.
         // We disable sprint for now as it looks jank and can get bots into weird spots sometimes.
         bot.Mover.Sprint(false);
+        bot.SetTargetMoveSpeed(movement.Speed);
 
         if (movement.Status is MovementStatus.Failed or MovementStatus.Suspended)
             return;
@@ -130,56 +122,57 @@ public class MovementSystem(NavJobExecutor navJobExecutor, ActorList liveActors)
         // Failsafe
         if (movement.Target == null)
         {
-            movement.Status = MovementStatus.Suspended;
             Plugin.Log.LogError($"Null target for {actor} even though the status is {movement.Status}");
+            movement.Status = MovementStatus.Suspended;
             return;
         }
 
         movement.Target.DistanceSqr = (movement.Target.Position - bot.Position).sqrMagnitude;
-
-        // Handle the case where we aren't following a path for some reason. The usual reasons are:
-        // 1. The path was partial, and we arrived at the end
-        // 2. We arrived at the destination.
-        if (movement.ActualPath == null)
+        
+        if (movement.Target.DistanceSqr < TargetReachedDistSqr)
         {
-            // If we arrived at the destination and have no active path, we are done
-            if (movement.Status == MovementStatus.Completed)
-            {
-                return;
-            }
-
-            // Otherwise try to find a new path.
-            if (movement.Retry < RetryLimit)
-            {
-                MoveRetry(actor);
-            }
-            else
-            {
-                movement.Status = MovementStatus.Failed;
-            }
-
+            ResetTarget(movement, MovementStatus.Suspended);
             return;
         }
 
-        if (movement.Target.DistanceSqr < TargetReachedDistanceSqr)
+        // Handle the case where we aren't following a path for some reason. The usual reason is that the path was partial. 
+        if (movement.ActualPath == null)
         {
-            movement.Status = MovementStatus.Completed;
+            // Try to find a new path.
+            if (movement.Retry < RetryLimit)
+            {
+                MoveRetry(actor, actor.Movement.Target.Position);
+            }
+            else
+            {
+                ResetTarget(movement, MovementStatus.Failed);
+            }
+            
+            return;
         }
 
         // We'll enforce these whenever the bot is under way
         bot.SetPose(1f);
         bot.BotLay.GetUp(true);
 
-        // Bot movement control
-        // TODO: Add target speed as a variable in the Movement component and then have the objective tracking update it
-        //       We'll always set the target speed irrespective of a movement target being present.
-        var targetSpeed = Mathf.Lerp(0.65f, 1f, movement.Target.DistanceSqr / TargetVicinityDistanceSqr);
-        bot.SetTargetMoveSpeed(targetSpeed);
-        
+        // Move these out into a LookSystem
         var lookPoint = PathHelper.CalculateForwardPointOnPath(
-            movement.ActualPath.Vector3_0, bot.Position, movement.ActualPath.CurIndex, LookAheadDistanceSqr
+            movement.ActualPath.Vector3_0, bot.Position, movement.ActualPath.CurIndex, LookAheadDistSqr
         ) + 1.5f * Vector3.up;
         bot.Steering.LookToPoint(lookPoint, 360f);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AssignTarget(Movement movement, NavJob job)
+    {
+        movement.Set(job);
+        movement.Status = MovementStatus.Active;        
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ResetTarget(Movement movement, MovementStatus status)
+    {
+        movement.Status = status;
     }
 
     // private static bool ShouldSprint(Actor actor)

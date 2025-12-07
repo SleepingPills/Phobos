@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using EFT.Interactive;
 using Phobos.Diag;
 using UnityEngine;
@@ -7,28 +6,28 @@ using UnityEngine.AI;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
-namespace Phobos.Objectives;
+namespace Phobos.Navigation;
 
-public class ObjectiveQueue
+public class LocationQueue
 {
-    private readonly Queue<Objective> _queue;
-    private readonly HashSet<Objective> _dupeCheck = new ();
+    private readonly Queue<Location> _queue;
+    private readonly HashSet<Location> _dupeCheck = new ();
 
-    public ObjectiveQueue()
+    public LocationQueue()
     {
         var objectives = Collect();
         Shuffle(objectives);
-        _queue = new Queue<Objective>(objectives);
+        _queue = new Queue<Location>(objectives);
     }
 
-    public Objective Next()
+    public Location Next()
     {
         var objective = _queue.Dequeue();
         _queue.Enqueue(objective);
         return objective;
     }
     
-    private static void Shuffle(List<Objective> objectives)
+    private static void Shuffle(List<Location> objectives)
     {
         // Fisher-Yates in-place shuffle
         for (var i = 0; i < objectives.Count; i++)
@@ -38,9 +37,9 @@ public class ObjectiveQueue
         }
     }
     
-    private List<Objective> Collect()
+    private List<Location> Collect()
     {
-        var collection = new List<Objective>();
+        var collection = new List<Location>();
 
         DebugLog.Write("Collecting quests POIs");
 
@@ -65,11 +64,11 @@ public class ObjectiveQueue
         return collection;
     }
 
-    private void AddValid(List<Objective> collection, LocationCategory category, string name, Vector3 position)
+    private void AddValid(List<Location> collection, LocationCategory category, string name, Vector3 position)
     {
         if (NavMesh.SamplePosition(position, out var target, 5f, NavMesh.AllAreas))
         {
-            var objective = new Objective(category, name, target.position);
+            var objective = new Location(category, name, target.position);
             
             if (!_dupeCheck.Add(objective))
             {

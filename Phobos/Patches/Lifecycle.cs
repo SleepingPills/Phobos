@@ -5,7 +5,6 @@ using EFT;
 using Phobos.Diag;
 using Phobos.ECS;
 using Phobos.Navigation;
-using Phobos.Objectives;
 using SPT.Reflection.Patching;
 
 namespace Phobos.Patches;
@@ -27,7 +26,7 @@ public class PhobosInitPatch : ModulePatch
         DebugLog.Write("Initializing Phobos");
         // Services
         var navJobExecutor = new NavJobExecutor();
-        var objectiveQueue = new ObjectiveQueue();
+        var objectiveQueue = new LocationQueue();
         
         // Systems
         var systemOrchestrator = new SystemOrchestrator(navJobExecutor, objectiveQueue);

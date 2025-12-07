@@ -2,11 +2,11 @@
 using Phobos.Diag;
 using Phobos.ECS.Entities;
 using Phobos.ECS.Helpers;
-using Phobos.Objectives;
+using Phobos.Navigation;
 
 namespace Phobos.ECS.Systems;
 
-public class SquadOrchestrator(ActorTaskSystem actorTaskSystem, ObjectiveQueue objectiveQueue)
+public class SquadOrchestrator(ObjectiveSystem objectiveSystem, LocationQueue locationQueue)
 {
     private readonly FramePacing _pacing = new(10);
     
@@ -14,7 +14,7 @@ public class SquadOrchestrator(ActorTaskSystem actorTaskSystem, ObjectiveQueue o
     private readonly SquadList _emptySquads = new(8);
     private readonly Dictionary<int, Squad> _squadIdMap = new(16);
     
-    private readonly SquadTaskSystem _squadsTaskSystem = new(actorTaskSystem, objectiveQueue);
+    private readonly SquadTaskSystem _squadsTaskSystem = new(objectiveSystem, locationQueue);
 
     public Squad GetSquad(int squadId)
     {

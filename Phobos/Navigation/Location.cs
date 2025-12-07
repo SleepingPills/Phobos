@@ -1,7 +1,7 @@
 ﻿using System;
 using UnityEngine;
 
-namespace Phobos.Objectives;
+namespace Phobos.Navigation;
 
 public enum LocationCategory
 {
@@ -11,18 +11,13 @@ public enum LocationCategory
     Exfil
 }
 
-public class Objective(LocationCategory category, string name, Vector3 position) : IEquatable<Objective>
+public class Location(LocationCategory category, string name, Vector3 position) : IEquatable<Location>
 {
     public readonly LocationCategory Category = category;
     public readonly string Name = name;
     public readonly Vector3 Position = position;
 
-    public override string ToString()
-    {
-        return $"Objective({Category}, {Name}, {Position})";
-    }
-
-    public bool Equals(Objective other)
+    public bool Equals(Location other)
     {
         if (other is null) return false;
         if (ReferenceEquals(this, other)) return true;
@@ -33,11 +28,16 @@ public class Objective(LocationCategory category, string name, Vector3 position)
     {
         if (obj is null) return false;
         if (ReferenceEquals(this, obj)) return true;
-        return obj.GetType() == GetType() && Equals((Objective)obj);
+        return obj.GetType() == GetType() && Equals((Location)obj);
     }
 
     public override int GetHashCode()
     {
         return HashCode.Combine((int)Category, Name, Position);
+    }
+    
+    public override string ToString()
+    {
+        return $"Location({Category}, {Name}, {Position})";
     }
 }

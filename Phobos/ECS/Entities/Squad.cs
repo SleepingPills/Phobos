@@ -1,6 +1,7 @@
 ﻿using System;
 using Phobos.Data;
 using Phobos.ECS.Components;
+using Phobos.Navigation;
 
 namespace Phobos.ECS.Entities;
 
@@ -8,7 +9,7 @@ public class SquadList(int capacity) : ExtendedList<Squad>(capacity);
 
 public class Squad(int id) : IEquatable<Squad>
 {
-    public readonly SquadTask Task = new();
+    public Location ObjectiveLocation;
     public readonly ActorList Members = new(6);
     
     private readonly int _id = id;
