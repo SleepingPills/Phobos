@@ -11,8 +11,7 @@ public enum ObjectiveStatus
 public enum ObjectiveType
 {
     Quest = 0,
-    Guard,
-    Assist
+    Guard
 }
 
 public abstract class Objective(ObjectiveType objectiveType)

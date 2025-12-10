@@ -14,7 +14,6 @@ public class SystemOrchestrator
     
     public readonly QuestObjectiveSystem QuestObjectiveSystem;
     public readonly GuardObjectiveSystem GuardObjectiveSystem;
-    public readonly AssistObjectiveSystem AssistObjectiveSystem;
     
     public readonly MovementSystem MovementSystem;
     public readonly AgentList LiveAgents;
@@ -30,11 +29,9 @@ public class SystemOrchestrator
         QuestObjectiveSystem = new QuestObjectiveSystem(MovementSystem);
         DebugLog.Write("Creating GuardObjectiveSystem");
         GuardObjectiveSystem = new GuardObjectiveSystem();
-        DebugLog.Write("Creating AssistObjectiveSystem");
-        AssistObjectiveSystem = new AssistObjectiveSystem();
         
         DebugLog.Write("Creating SquadOrchestrator");
-        SquadOrchestrator = new SquadOrchestrator(QuestObjectiveSystem, GuardObjectiveSystem, AssistObjectiveSystem, locationQueue);
+        SquadOrchestrator = new SquadOrchestrator(QuestObjectiveSystem, GuardObjectiveSystem, locationQueue);
     }
 
     public void AddAgent(Agent agent)

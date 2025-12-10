@@ -5,7 +5,6 @@ namespace Phobos.ECS.Components;
 public class Task
 {
     public readonly Quest Quest = new();
-    public readonly Assist Assist = new();
     public readonly Guard Guard = new();
 
     public readonly Objective[] Objectives;
@@ -15,7 +14,6 @@ public class Task
         Objectives =
         [
             Quest,
-            Assist,
             Guard,
         ];
     }

@@ -11,7 +11,6 @@ namespace Phobos.ECS;
 public class SquadOrchestrator(
     QuestObjectiveSystem questObjectiveSystem,
     GuardObjectiveSystem guardObjectiveSystem,
-    AssistObjectiveSystem assistObjectiveSystem,
     LocationQueue locationQueue
 )
 {
@@ -22,7 +21,7 @@ public class SquadOrchestrator(
     private readonly Dictionary<int, Squad> _squadIdMap = new(16);
 
     private readonly SquadStrategySystem _squadsStrategySystem = new(
-        questObjectiveSystem, guardObjectiveSystem, assistObjectiveSystem, locationQueue
+        questObjectiveSystem, guardObjectiveSystem, locationQueue
     );
 
     public Squad GetSquad(int squadId)
