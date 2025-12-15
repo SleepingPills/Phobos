@@ -1,6 +1,7 @@
 ﻿using System;
 using Phobos.Data;
 using Phobos.ECS.Components;
+using Phobos.Entities;
 using Phobos.Navigation;
 
 namespace Phobos.ECS.Entities;

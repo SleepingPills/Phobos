@@ -6,6 +6,7 @@ using EFT.Interactive;
 using Phobos.Diag;
 using Phobos.ECS.Components;
 using Phobos.ECS.Entities;
+using Phobos.Entities;
 using Phobos.Helpers;
 using Phobos.Navigation;
 using UnityEngine;
@@ -193,14 +194,14 @@ public class MovementSystem(NavJobExecutor navJobExecutor, AgentList liveAgents)
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AssignTarget(Movement movement, NavJob job)
+    private static void AssignTarget(MovementComponent movement, NavJob job)
     {
         movement.Set(job);
         movement.Status = MovementStatus.Active;        
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ResetTarget(Movement movement, MovementStatus status)
+    private static void ResetTarget(MovementComponent movement, MovementStatus status)
     {
         movement.Status = status;
     }

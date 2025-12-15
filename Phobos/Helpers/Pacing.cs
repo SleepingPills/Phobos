@@ -1,7 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 using UnityEngine;
 
-namespace Phobos.ECS.Helpers;
+namespace Phobos.Helpers;
 
 public class TimePacing(float interval)
 {

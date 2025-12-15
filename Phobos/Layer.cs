@@ -5,6 +5,7 @@ using EFT;
 using Phobos.Diag;
 using Phobos.ECS;
 using Phobos.ECS.Entities;
+using Phobos.Entities;
 using UnityEngine;
 
 namespace Phobos;

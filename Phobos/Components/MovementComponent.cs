@@ -23,7 +23,7 @@ public class Target
     }
 }
 
-public class Movement(BotOwner bot)
+public class MovementComponent(BotOwner bot)
 {
     public MovementStatus Status = MovementStatus.Suspended;
     public Target Target;

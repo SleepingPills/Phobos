@@ -1,6 +1,4 @@
 ﻿# TODO:
-* Spend a bit of time refining the movement system so that it works well, understands doors, etc.
-* Add simplistic door handling where the bot auto-opens nearby doors and stops sprinting if there's a door within 5 meters
 * Sprinting
   * Re-enable sprinting
   * Make sprinting a toggle on the move action, once the action finishes, we reset everything to default.

@@ -1,23 +1,25 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using EFT;
-using Phobos.Data;
-using Phobos.ECS.Components;
+using Phobos.Actions;
+using Phobos.Components;
 
-namespace Phobos.ECS.Entities;
+namespace Phobos.Entities;
 
-public class AgentList(int capacity) : ExtendedList<Agent>(capacity);
-
-public class Agent(BotOwner bot) : IEquatable<Agent>
+public class Agent(BotOwner bot, int id) : IEquatable<Agent>
 {
-    public bool IsLayerActive = false;
-    public bool IsPhobosActive = true;
-
+    public readonly int Id = id;
+    public readonly int BotId = bot.Id;
     public readonly int SquadId = bot.BotsGroup.Id;
     public readonly BotOwner Bot = bot;
     
-    public readonly Task Task = new();
-    public readonly Movement Movement = new(bot);
+    public bool IsLayerActive = false;
+    public bool IsPhobosActive = true;
+
+    public List<IComponent> Components = new(32);
+    public List<UtilityScore> UtilityScores = new(16);
+    public BaseAction CurrentAction;
     
     public bool IsActive
     {
@@ -25,14 +27,12 @@ public class Agent(BotOwner bot) : IEquatable<Agent>
         get => IsLayerActive && IsPhobosActive;
     }
 
-    private readonly int _id = bot.Id;
-
     public bool Equals(Agent other)
     {
         if (ReferenceEquals(other, null))
             return false;
 
-        return _id == other._id;
+        return Id == other.Id;
     }
     
     public override bool Equals(object obj)
@@ -44,11 +44,11 @@ public class Agent(BotOwner bot) : IEquatable<Agent>
 
     public override int GetHashCode()
     {
-        return _id;
+        return Id;
     }
 
     public override string ToString()
     {
-        return $"Actor(Id: {_id}, Name: {Bot.Profile.Nickname}, LayerActive: {IsLayerActive}, PhobosActive: {IsPhobosActive})";
+        return $"Actor(Id: {Id}, Name: {Bot.Profile.Nickname}, LayerActive: {IsLayerActive}, PhobosActive: {IsPhobosActive})";
     }
 }

@@ -1,16 +1,14 @@
 ﻿using System.Collections.Generic;
 using Phobos.Diag;
 using Phobos.ECS.Entities;
-using Phobos.ECS.Helpers;
 using Phobos.ECS.Systems;
-using Phobos.ECS.Systems.Objectives;
+using Phobos.Entities;
+using Phobos.Helpers;
 using Phobos.Navigation;
 
 namespace Phobos.ECS;
 
 public class SquadOrchestrator(
-    QuestObjectiveSystem questObjectiveSystem,
-    GuardObjectiveSystem guardObjectiveSystem,
     LocationQueue locationQueue
 )
 {
@@ -20,9 +18,7 @@ public class SquadOrchestrator(
     private readonly SquadList _emptySquads = new(8);
     private readonly Dictionary<int, Squad> _squadIdMap = new(16);
 
-    private readonly SquadStrategySystem _squadsStrategySystem = new(
-        questObjectiveSystem, guardObjectiveSystem, locationQueue
-    );
+    private readonly SquadStrategySystem _squadsStrategySystem = new(locationQueue);
 
     public Squad GetSquad(int squadId)
     {
