@@ -7,7 +7,7 @@ using BaseAction = Phobos.Tasks.Actions.BaseAction;
 
 namespace Phobos.Orchestration;
 
-public class ActionSystem(Dataset dataset)
+public class ActionSystem(AgentData dataset)
 {
     private readonly List<BaseAction> _actions = [];
     
@@ -37,7 +37,7 @@ public class ActionSystem(Dataset dataset)
             _actions[i].UpdateUtility();
         }
 
-        var agents = dataset.Agents.Values;
+        var agents = dataset.Entities.Values;
         
         for (var i = 0; i < agents.Count; i++)
         {

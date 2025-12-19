@@ -3,7 +3,7 @@ using Phobos.Entities;
 
 namespace Phobos.Data;
 
-public class AgentArray(int capacity = 32) : EntityArray<Agent>
+public class AgentArray(int capacity = 32) : EntityArray<Agent>(capacity)
 {
     public Agent Add(BotOwner bot)
     {

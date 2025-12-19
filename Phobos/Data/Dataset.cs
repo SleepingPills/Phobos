@@ -6,34 +6,30 @@ using Phobos.Entities;
 
 namespace Phobos.Data;
 
-public class Dataset
+public class Dataset<T, TE>(TE entities) where TE : EntityArray<T> where T : Entity
 {
-    public readonly AgentArray Agents = new();
+    public readonly TE Entities =  entities;
     private readonly List<IComponentArray> _components = [];
     private readonly Dictionary<Type, IComponentArray> _componentsTypeMap = new();
 
-    public Agent AddAgent(BotOwner bot)
+    protected void AddEntityComponents(T entity)
     {
-        var agent = Agents.Add(bot);
-        
         for (var i = 0; i < _components.Count; i++)
         {
             var component = _components[i];
-            var item = component.Add(agent.Id);
-            agent.Components.Add(item);
+            var item = component.Add(entity.Id);
+            entity.Components.Add(item);
         }
-        
-        return agent;
     }
     
-    public void RemoveAgent(Agent agent)
+    public void RemoveEntity(T entity)
     {
-        Agents.Remove(agent);
+        Entities.Remove(entity);
         
         for (var i = 0; i < _components.Count; i++)
         {
             var component = _components[i];
-            component.Remove(agent.Id);
+            component.Remove(entity.Id);
         }
     }
     
@@ -43,8 +39,32 @@ public class Dataset
         _components.Add(componentArray);
     }
 
-    public ComponentArray<T> GetComponentArray<T>() where T : class, IComponent
+    public ComponentArray<TC> GetComponentArray<TC>() where TC : Component
     {
-        return (ComponentArray<T>)_componentsTypeMap[typeof(T)];
+        return (ComponentArray<TC>)_componentsTypeMap[typeof(ComponentArray<TC>)];
+    }
+}
+
+public class AgentData() : Dataset<Agent, AgentArray>(new AgentArray())
+{
+    public Agent AddEntity(BotOwner bot)
+    {
+        var agent = Entities.Add(bot);
+        
+        AddEntityComponents(agent);
+                
+        return agent;
+    }
+}
+
+public class SquadData() : Dataset<Squad, SquadArray>(new SquadArray())
+{
+    public Squad AddEntity()
+    {
+        var squad = Entities.Add();
+        
+        AddEntityComponents(squad);
+                
+        return squad;
     }
 }

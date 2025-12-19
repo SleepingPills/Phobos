@@ -4,7 +4,7 @@ using Phobos.Entities;
 
 namespace Phobos.Tasks.Actions;
 
-public class GuardAction(Dataset dataset) : BaseAction(hysteresis: 0.05f)
+public class GuardAction(AgentData dataset) : BaseAction(hysteresis: 0.05f)
 {
     private readonly ComponentArray<Guard> _guardComponents = dataset.GetComponentArray<Guard>();
 
@@ -14,7 +14,7 @@ public class GuardAction(Dataset dataset) : BaseAction(hysteresis: 0.05f)
          * Objective proximity: 1 if near the objective, 0 otherwise
          * Squad cohesion: the less squad cohesion there is, the higher utility this objective gets.
          */
-        var agents = dataset.Agents.Values;
+        var agents = dataset.Entities.Values;
         
         for (var i = 0; i < agents.Count; i++)
         {

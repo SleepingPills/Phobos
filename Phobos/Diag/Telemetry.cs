@@ -2,6 +2,7 @@
 using System.Diagnostics;
 using Phobos.Entities;
 using Phobos.Tasks.Actions;
+using Phobos.Tasks.Strategies;
 
 namespace Phobos.Diag;
 
@@ -10,9 +11,15 @@ public class AgentTelemetry
     public readonly List<ActionScore> Scores = [];
 }
 
+public class SquadTelemetry
+{
+    public readonly List<StrategyScore> Scores = [];
+}
+
 public class Telemetry
 {
     private readonly Dictionary<Agent, AgentTelemetry> _agentTelemetry = new();
+    private readonly Dictionary<Squad, SquadTelemetry> _squadTelemetry = new();
 
     public string GenerateUtilityReport()
     {
@@ -31,18 +38,40 @@ public class Telemetry
         telemetry.Scores.Clear();
         telemetry.Scores.AddRange(agent.Actions);
     }
+    
+    [Conditional("DEBUG")]
+    public void UpdateScores(Squad squad)
+    {
+        var telemetry = _squadTelemetry[squad];
+        telemetry.Scores.Clear();
+        telemetry.Scores.AddRange(squad.Strategies);
+    }
 
     [Conditional("DEBUG")]
-    public void AddAgent(Agent agent)
+    public void AddEntity(Agent agent)
     {
         DebugLog.Write($"Adding {agent} to Telemetry");
         _agentTelemetry[agent] = new();
     }
+    
+    [Conditional("DEBUG")]
+    public void AddEntity(Squad squad)
+    {
+        DebugLog.Write($"Adding {squad} to Telemetry");
+        _squadTelemetry[squad] = new();
+    }
 
     [Conditional("DEBUG")]
-    public void RemoveAgent(Agent agent)
+    public void RemoveEntity(Agent agent)
     {
         DebugLog.Write($"Removing {agent} from Telemetry");
         _agentTelemetry.Remove(agent);
+    }
+    
+    [Conditional("DEBUG")]
+    public void RemoveEntity(Squad squad)
+    {
+        DebugLog.Write($"Removing {squad} from Telemetry");
+        _squadTelemetry.Remove(squad);
     }
 }

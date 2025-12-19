@@ -1,24 +1,29 @@
 ﻿using System.Collections.Generic;
+using Phobos.Data;
 using Phobos.Diag;
 using Phobos.Entities;
 using Phobos.Helpers;
 
 namespace Phobos.Orchestration;
 
-public class SquadSystem()
+public class SquadSystem(SquadData squadData, StrategySystem strategySystem, Telemetry telemetry)
 {
     private readonly TimePacing _pacing = new(1);
 
-    private readonly List<Squad> _squads = new(16);
-    private readonly List<Squad> _emptySquads = new(8);
-    private readonly Dictionary<int, Squad> _squadIdMap = new(16);
+    private readonly Dictionary<int, int> _squadIdMap = new(16);
 
-    public Squad this[int squadId] => _squadIdMap[squadId];
+    public Squad this[int bsgSquadId]
+    {
+        get
+        {
+            var squadId = _squadIdMap[bsgSquadId];
+            return squadData.Entities[squadId];
+        }
+    }
 
     public void Update()
     {
-        if (_pacing.Blocked())
-            return;
+        strategySystem.Update();
 
         // for (var i = 0; i < _squads.Count; i++)
         // {
@@ -35,18 +40,18 @@ public class SquadSystem()
 
     public void AddAgent(Agent agent)
     {
-        if (!_squadIdMap.TryGetValue(agent.SquadId, out var squad))
+        var bsgSquadId = agent.Bot.BotsGroup.Id;
+        Squad squad;
+        if (_squadIdMap.TryGetValue(bsgSquadId, out var squadId))
         {
-            squad = new Squad(agent.SquadId);
-            _squadIdMap.Add(agent.SquadId, squad);
-            _squads.Add(squad);
-            DebugLog.Write($"Registered new {squad}");
+            squad = squadData.Entities[squadId];
         }
-        else if (_emptySquads.SwapRemove(squad))
+        else
         {
-            // Move the empty squad back to the main list
-            _squads.Add(squad);
-            DebugLog.Write($"Re-activated previously inactive {squad}");
+            squad = squadData.AddEntity();
+            _squadIdMap.Add(bsgSquadId, squad.Id);
+            telemetry.AddEntity(squad);
+            DebugLog.Write($"Registered new {squad}");
         }
 
         squad.AddAgent(agent);
@@ -55,16 +60,17 @@ public class SquadSystem()
 
     public void RemoveAgent(Agent agent)
     {
-        if (!_squadIdMap.TryGetValue(agent.SquadId, out var squad)) return;
+        if (!_squadIdMap.TryGetValue(agent.Bot.BotsGroup.Id, out var squadId)) return;
 
+        var squad = squadData.Entities[squadId];
         squad.RemoveAgent(agent);
-        DebugLog.Write($"Removed {agent} from {squad} with {squad.Count} members");
+        DebugLog.Write($"Removed {agent} from {squad} with {squad.Count} members remaining");
 
         if (squad.Count != 0) return;
 
-        DebugLog.Write($"{squad} is empty and deactivated");
-
-        _squads.SwapRemove(squad);
-        _emptySquads.Add(squad);
+        DebugLog.Write($"Removing empty {squad}");
+        squadData.Entities.Remove(squad);
+        strategySystem.RemoveSquad(squad);
+        telemetry.RemoveEntity(squad);
     }
 }

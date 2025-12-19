@@ -1,10 +1,14 @@
 ﻿using System;
+using System.Collections.Generic;
+using Phobos.Components;
 
 namespace Phobos.Entities;
 
 public class Entity(int id) : IEquatable<Entity>
 {
     public readonly int Id = id;
+    
+    public readonly List<Component> Components = new(32);
     
     public bool Equals(Entity other)
     {

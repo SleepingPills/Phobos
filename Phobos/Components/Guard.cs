@@ -3,13 +3,8 @@ using Phobos.Navigation;
 
 namespace Phobos.Components;
 
-public class Guard(int id) : IComponent
+public class Guard(int id) : Component(id)
 {
-    public int Id
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => id;
-    }
     public Location Location;
     
     public override string ToString()

@@ -7,11 +7,11 @@ namespace Phobos.Data;
 
 public interface IComponentArray
 {
-    public IComponent Add(int id);
+    public Component Add(int id);
     public bool Remove(int id);
 }
 
-public class ComponentArray<T>(int capacity, Func<int, T> builderFunc) : IComponentArray where T : class, IComponent
+public class ComponentArray<T>(Func<int, T> builderFunc, int capacity = 16) : IComponentArray where T : Component
 {
     private readonly List<T> _data = new(capacity);
 
@@ -20,11 +20,11 @@ public class ComponentArray<T>(int capacity, Func<int, T> builderFunc) : ICompon
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => _data[id];
     }
-    
-    public IComponent Add(int id)
+
+    public Component Add(int id)
     {
         var component = builderFunc(id);
-        
+
         if (id >= _data.Count)
         {
             // We are adding a new slot instead of reusing an old one.
@@ -33,7 +33,7 @@ public class ComponentArray<T>(int capacity, Func<int, T> builderFunc) : ICompon
             {
                 _data.Add(null);
             }
-            
+
             _data.Add(component);
         }
         else
@@ -43,7 +43,7 @@ public class ComponentArray<T>(int capacity, Func<int, T> builderFunc) : ICompon
 
         return component;
     }
-    
+
     public bool Remove(int id)
     {
         var success = _data[id] != null;
@@ -57,7 +57,7 @@ public class ComponentArray<T>(int capacity, Func<int, T> builderFunc) : ICompon
         {
             _data[id] = null;
         }
-        
+
         return success;
     }
 }
