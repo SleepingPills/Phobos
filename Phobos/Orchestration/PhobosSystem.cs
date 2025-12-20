@@ -1,4 +1,5 @@
-﻿using EFT;
+﻿using System;
+using EFT;
 using Phobos.Components;
 using Phobos.Components.Squad;
 using Phobos.Data;
@@ -23,7 +24,7 @@ public class PhobosSystem
     
     private readonly Telemetry _telemetry;
 
-    public PhobosSystem(Telemetry telemetry)
+    public PhobosSystem(Func<AgentData> actionBuilders, Telemetry telemetry)
     {
         LocationQueue = new LocationQueue();
         
@@ -45,11 +46,6 @@ public class PhobosSystem
         SquadData.RegisterComponent(new ComponentArray<SquadObjective>(id => new SquadObjective(id)));
     }
 
-    public void RegisterActions()
-    {
-        // Register actions
-    }
-
     public void RegisterStrategies()
     {
         StrategySystem.RegisterStrategy(new GotoObjectiveStrategy(SquadData, AgentData, LocationQueue, 0.25f));
@@ -60,7 +56,7 @@ public class PhobosSystem
         var agent = AgentData.AddEntity(bot);
         
         DebugLog.Write($"Adding {agent} to Phobos");
-        SquadSystem.AddAgent(agent);
+        SquadSystem.AddEntity(agent);
         _telemetry.AddEntity(agent);
         return agent;
     }
@@ -70,8 +66,9 @@ public class PhobosSystem
         DebugLog.Write($"Removing {agent} from Phobos");
         AgentData.RemoveEntity(agent);
         
-        ActionSystem.RemoveAgent(agent);
-        SquadSystem.RemoveAgent(agent);
+        ActionSystem.RemoveEntity(agent);
+        SquadSystem.RemoveEntity(agent);
+        
         _telemetry.RemoveEntity(agent);
     }
 

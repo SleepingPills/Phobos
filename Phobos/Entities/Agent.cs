@@ -1,16 +1,11 @@
-﻿using System.Collections.Generic;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 using EFT;
-using Phobos.Tasks.Actions;
 
 namespace Phobos.Entities;
 
-public class Agent(BotOwner bot, int id) : Entity(id)
+public class Agent(int id, BotOwner bot, float[] taskScores) : Entity(id, taskScores)
 {
     public readonly BotOwner Bot = bot;
-
-    public readonly List<ActionScore> Actions = new(16);
-    public BaseAction CurrentAction;
     
     public bool IsLayerActive = false;
     public bool IsPhobosActive = true;

@@ -3,12 +3,16 @@ using System.Collections.Generic;
 using EFT;
 using Phobos.Components;
 using Phobos.Entities;
+using Phobos.Tasks;
+using Phobos.Tasks.Actions;
 
 namespace Phobos.Data;
 
-public class Dataset<T, TE>(TE entities) where TE : EntityArray<T> where T : Entity
+public class Dataset<T, TE>(TE entities, Task<T>[] tasks) where TE : EntityArray<T> where T : Entity
 {
     public readonly TE Entities =  entities;
+    public readonly Task<T>[] Tasks = tasks;
+    
     private readonly List<IComponentArray> _components = [];
     private readonly Dictionary<Type, IComponentArray> _componentsTypeMap = new();
 
@@ -17,8 +21,7 @@ public class Dataset<T, TE>(TE entities) where TE : EntityArray<T> where T : Ent
         for (var i = 0; i < _components.Count; i++)
         {
             var component = _components[i];
-            var item = component.Add(entity.Id);
-            entity.Components.Add(item);
+            component.Add(entity.Id);
         }
     }
     
@@ -45,11 +48,11 @@ public class Dataset<T, TE>(TE entities) where TE : EntityArray<T> where T : Ent
     }
 }
 
-public class AgentData() : Dataset<Agent, AgentArray>(new AgentArray())
+public class AgentData(Task<Agent>[] actions) : Dataset<Agent, AgentArray>(new AgentArray(), actions)
 {
     public Agent AddEntity(BotOwner bot)
     {
-        var agent = Entities.Add(bot);
+        var agent = Entities.Add(bot, Tasks.Length);
         
         AddEntityComponents(agent);
                 
@@ -57,11 +60,11 @@ public class AgentData() : Dataset<Agent, AgentArray>(new AgentArray())
     }
 }
 
-public class SquadData() : Dataset<Squad, SquadArray>(new SquadArray())
+public class SquadData(Task<Squad>[] strategies) : Dataset<Squad, SquadArray>(new SquadArray(), strategies)
 {
     public Squad AddEntity()
     {
-        var squad = Entities.Add();
+        var squad = Entities.Add(Tasks.Length);
         
         AddEntityComponents(squad);
                 

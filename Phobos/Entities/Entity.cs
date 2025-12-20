@@ -1,14 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using Phobos.Components;
+using Phobos.Tasks;
 
 namespace Phobos.Entities;
 
-public class Entity(int id) : IEquatable<Entity>
+public class Entity(int id, float[] taskScores) : IEquatable<Entity>
 {
     public readonly int Id = id;
     
-    public readonly List<Component> Components = new(32);
+    public readonly float[] TaskScores = taskScores;
+    public TaskAssignment TaskAssignment;
     
     public bool Equals(Entity other)
     {

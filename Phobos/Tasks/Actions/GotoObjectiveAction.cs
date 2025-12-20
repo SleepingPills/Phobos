@@ -1,10 +1,10 @@
 ﻿using Phobos.Components;
 using Phobos.Data;
-using Phobos.Diag;
+using Phobos.Entities;
 
 namespace Phobos.Tasks.Actions;
 
-public class GotoObjectiveAction(AgentData dataset, float hysteresis) : BaseAction(hysteresis)
+public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Agent>(hysteresis)
 {
     private readonly ComponentArray<Objective> _objectiveComponents = dataset.GetComponentArray<Objective>();
     

@@ -38,7 +38,7 @@ public class SquadSystem(SquadData squadData, StrategySystem strategySystem, Tel
         // }
     }
 
-    public void AddAgent(Agent agent)
+    public void AddEntity(Agent agent)
     {
         var bsgSquadId = agent.Bot.BotsGroup.Id;
         Squad squad;
@@ -55,22 +55,22 @@ public class SquadSystem(SquadData squadData, StrategySystem strategySystem, Tel
         }
 
         squad.AddAgent(agent);
-        DebugLog.Write($"Added {agent} to {squad} with {squad.Count} members");
+        DebugLog.Write($"Added {agent} to {squad} with {squad.Size} members");
     }
 
-    public void RemoveAgent(Agent agent)
+    public void RemoveEntity(Agent agent)
     {
         if (!_squadIdMap.TryGetValue(agent.Bot.BotsGroup.Id, out var squadId)) return;
 
         var squad = squadData.Entities[squadId];
         squad.RemoveAgent(agent);
-        DebugLog.Write($"Removed {agent} from {squad} with {squad.Count} members remaining");
+        DebugLog.Write($"Removed {agent} from {squad} with {squad.Size} members remaining");
 
-        if (squad.Count != 0) return;
+        if (squad.Size != 0) return;
 
         DebugLog.Write($"Removing empty {squad}");
         squadData.Entities.Remove(squad);
-        strategySystem.RemoveSquad(squad);
+        strategySystem.RemoveEntity(squad);
         telemetry.RemoveEntity(squad);
     }
 }

@@ -6,20 +6,10 @@ using Phobos.Tasks.Strategies;
 
 namespace Phobos.Diag;
 
-public class AgentTelemetry
-{
-    public readonly List<ActionScore> Scores = [];
-}
-
-public class SquadTelemetry
-{
-    public readonly List<StrategyScore> Scores = [];
-}
-
 public class Telemetry
 {
-    private readonly Dictionary<Agent, AgentTelemetry> _agentTelemetry = new();
-    private readonly Dictionary<Squad, SquadTelemetry> _squadTelemetry = new();
+    // private readonly Dictionary<Agent, AgentTelemetry> _agentTelemetry = new();
+    // private readonly Dictionary<Squad, SquadTelemetry> _squadTelemetry = new();
 
     public string GenerateUtilityReport()
     {
@@ -32,46 +22,46 @@ public class Telemetry
     }
 
     [Conditional("DEBUG")]
-    public void UpdateScores(Agent agent)
+    public void UpdateScores(float[] scores)
     {
-        var telemetry = _agentTelemetry[agent];
-        telemetry.Scores.Clear();
-        telemetry.Scores.AddRange(agent.Actions);
+        // var telemetry = _agentTelemetry[agent];
+        // telemetry.Scores.Clear();
+        // telemetry.Scores.AddRange(agent.Actions);
     }
     
     [Conditional("DEBUG")]
     public void UpdateScores(Squad squad)
     {
-        var telemetry = _squadTelemetry[squad];
-        telemetry.Scores.Clear();
-        telemetry.Scores.AddRange(squad.Strategies);
+        // var telemetry = _squadTelemetry[squad];
+        // telemetry.Scores.Clear();
+        // telemetry.Scores.AddRange(squad.Strategies);
     }
 
     [Conditional("DEBUG")]
     public void AddEntity(Agent agent)
     {
         DebugLog.Write($"Adding {agent} to Telemetry");
-        _agentTelemetry[agent] = new();
+        // _agentTelemetry[agent] = new();
     }
     
     [Conditional("DEBUG")]
     public void AddEntity(Squad squad)
     {
         DebugLog.Write($"Adding {squad} to Telemetry");
-        _squadTelemetry[squad] = new();
+        // _squadTelemetry[squad] = new();
     }
 
     [Conditional("DEBUG")]
     public void RemoveEntity(Agent agent)
     {
         DebugLog.Write($"Removing {agent} from Telemetry");
-        _agentTelemetry.Remove(agent);
+        // _agentTelemetry.Remove(agent);
     }
     
     [Conditional("DEBUG")]
     public void RemoveEntity(Squad squad)
     {
         DebugLog.Write($"Removing {squad} from Telemetry");
-        _squadTelemetry.Remove(squad);
+        // _squadTelemetry.Remove(squad);
     }
 }

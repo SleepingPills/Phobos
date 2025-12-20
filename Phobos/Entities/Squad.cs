@@ -6,14 +6,11 @@ using Phobos.Tasks.Strategies;
 namespace Phobos.Entities;
 
 
-public class Squad(int id) : Entity(id)
+public class Squad(int id, float[] taskScores) : Entity(id, taskScores)
 {
     public readonly List<Agent> Members = new(6);
     
-    public readonly List<StrategyScore> Strategies = new(16);
-    public BaseStrategy CurrentStrategy;
-    
-    public int Count {
+    public int Size {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Members.Count;
     }
