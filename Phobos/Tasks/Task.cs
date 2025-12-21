@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using Phobos.Diag;
 using Phobos.Entities;
 using Phobos.Helpers;
 
@@ -14,6 +15,8 @@ public abstract class Task<T>(float hysteresis) : BaseTask(hysteresis) where T: 
 
     public virtual void Activate(T entity)
     {
+        DebugLog.Write($"{GetType().Name} activating {entity}");
+        
         if (!_entitySet.Add(entity))
             return;
 
@@ -22,6 +25,8 @@ public abstract class Task<T>(float hysteresis) : BaseTask(hysteresis) where T: 
 
     public override void Deactivate(Entity entity)
     {
+        DebugLog.Write($"{GetType().Name} deactivating {entity}");
+        
         if (!_entitySet.Remove(entity))
             return;
 
@@ -29,7 +34,8 @@ public abstract class Task<T>(float hysteresis) : BaseTask(hysteresis) where T: 
         {
             var candidate  = ActiveEntities[i];
             
-            if (candidate.Id == entity.Id) continue;
+            if (candidate.Id != entity.Id) continue;
+            
             ActiveEntities.SwapRemoveAt(i);
             return;
         }

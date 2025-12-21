@@ -5,7 +5,7 @@ using Phobos.Tasks;
 
 namespace Phobos.Orchestration;
 
-public class BaseTaskSystem<TEntity>(Task<TEntity>[] tasks) where TEntity : Entity
+public class TaskSystem<TEntity>(Task<TEntity>[] tasks) where TEntity : Entity
 {
     public int TaskCount
     {
@@ -15,7 +15,7 @@ public class BaseTaskSystem<TEntity>(Task<TEntity>[] tasks) where TEntity : Enti
     
     public void RemoveEntity(TEntity entity)
     {
-        DebugLog.Write($"Removing {entity} from ");
+        DebugLog.Write($"Removing {entity} from {GetType().Name}");
         entity.TaskAssignment.Task?.Deactivate(entity);
         entity.TaskAssignment = new TaskAssignment();
     }
@@ -44,7 +44,7 @@ public class BaseTaskSystem<TEntity>(Task<TEntity>[] tasks) where TEntity : Enti
     {
         var assignment = entity.TaskAssignment;
 
-        var highestScore = -1f;
+        var highestScore = 0f;
         var nextTaskOrdinal = 0;
 
         // Seed the next task values from the current task - including hysteresis
@@ -70,6 +70,8 @@ public class BaseTaskSystem<TEntity>(Task<TEntity>[] tasks) where TEntity : Enti
 
         // Don't need to check whether the next task is the current task, because in that case nextTask will be null
         if (nextTask == null) return;
+        
+        DebugLog.Write($"{entity} changing task from {assignment.Task} to {nextTask} with utility {highestScore}");
 
         assignment.Task?.Deactivate(entity);
         nextTask.Activate(entity);

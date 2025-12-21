@@ -53,4 +53,9 @@ public class ComponentArray<T>(int capacity = 16) : IComponentArray where T : cl
             _data[id] = null;
         }
     }
+
+    public override string ToString()
+    {
+        return $"ComponentArray<{typeof(T).Name}>()";
+    }
 }

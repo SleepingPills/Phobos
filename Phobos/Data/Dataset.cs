@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using EFT;
-using Phobos.Components;
+using Phobos.Diag;
 using Phobos.Entities;
 
 namespace Phobos.Data;
@@ -18,12 +18,14 @@ public class Dataset<T, TE>(TE entities) where TE : EntityArray<T> where T : Ent
         for (var i = 0; i < _components.Count; i++)
         {
             var component = _components[i];
+            DebugLog.Write($"{entity} creating entry in {component}");
             component.Add(entity.Id);
         }
     }
     
     public void RemoveEntity(T entity)
     {
+        DebugLog.Write($"Removing {entity} from {GetType().Name}");
         Entities.Remove(entity);
         
         for (var i = 0; i < _components.Count; i++)
@@ -35,6 +37,7 @@ public class Dataset<T, TE>(TE entities) where TE : EntityArray<T> where T : Ent
     
     public void RegisterComponent(IComponentArray componentArray)
     {
+        DebugLog.Write($"Registering {componentArray} in {GetType().Name}");
         _componentsTypeMap.Add(componentArray.GetType(), componentArray);
         _components.Add(componentArray);
     }
@@ -50,6 +53,7 @@ public class AgentData() : Dataset<Agent, AgentArray>(new AgentArray())
     public Agent AddEntity(BotOwner bot, int taskCount)
     {
         var agent = Entities.Add(bot, taskCount);
+        DebugLog.Write($"Adding {agent} to {GetType().Name}");
         
         AddEntityComponents(agent);
                 
@@ -62,6 +66,7 @@ public class SquadData() : Dataset<Squad, SquadArray>(new SquadArray())
     public Squad AddEntity(int taskCount)
     {
         var squad = Entities.Add(taskCount);
+        DebugLog.Write($"Adding {squad} to {GetType().Name}");
         
         AddEntityComponents(squad);
                 

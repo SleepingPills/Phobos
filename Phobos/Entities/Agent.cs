@@ -18,6 +18,6 @@ public class Agent(int id, BotOwner bot, float[] taskScores) : Entity(id, taskSc
 
     public override string ToString()
     {
-        return $"Agent(Id: {Id}, Name: {Bot.Profile.Nickname}, LayerActive: {IsLayerActive}, PhobosActive: {IsPhobosActive})";
+        return $"Agent(Id: {Id}, Name: {Bot.Profile.Nickname})";
     }
 }
