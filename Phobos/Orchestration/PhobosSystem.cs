@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using EFT;
 using Phobos.Components;
@@ -14,25 +15,28 @@ namespace Phobos.Orchestration;
 
 public class PhobosSystem
 {
-    public delegate void RegisterComponentsDelegate(AgentData agentData, SquadData squadData);
-    public delegate void RegisterStrategiesDelegate(List<Task<Squad>> strategies);
+    public delegate void RegisterComponentsDelegate(Registry<IComponentArray> registry);
+    public delegate void RegisterActionsDelegate(Registry<Task<Agent>> actions);
+    public delegate void RegisterStrategiesDelegate(Registry<Task<Squad>> strategies);
     
-    public static RegisterComponentsDelegate OnRegisterComponents;
+    public static RegisterComponentsDelegate OnRegisterAgentComponents;
+    public static RegisterComponentsDelegate OnRegisterSquadComponents;
+    
+    public static RegisterActionsDelegate OnRegisterActions;
     public static RegisterStrategiesDelegate OnRegisterStrategies;
 
     public SquadRegistry SquadRegistry
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => _squadRegistry;
+        get;
     }
-    
+
     private readonly AgentData _agentData;
     private readonly SquadData _squadData;
     
     private readonly ActionSystem _actionSystem;
     private readonly StrategySystem _strategySystem;
-    private readonly SquadRegistry _squadRegistry;
-    
+
     private readonly Telemetry _telemetry;
 
     public PhobosSystem(Telemetry telemetry)
@@ -42,39 +46,62 @@ public class PhobosSystem
         
         RegisterComponents();
         var strategies = RegisterStrategies();
+        var actions = RegisterActions();
         
-        _actionSystem = new ActionSystem(_agentData);
+        _actionSystem = new ActionSystem(_agentData, actions);
         _strategySystem = new StrategySystem(_squadData, strategies);
         
-        _squadRegistry =  new SquadRegistry(_squadData, _strategySystem, telemetry);
+        SquadRegistry =  new SquadRegistry(_squadData, _strategySystem, telemetry);
         
         _telemetry = telemetry;
     }
 
     public void RegisterComponents()
     {
-        // Register components with the datasets
-        _agentData.RegisterComponent(id => new Objective(id));
-        _squadData.RegisterComponent(id => new SquadObjective(id));
+        var agentComponentDefs = new Registry<IComponentArray>();
+        var squadComponentDefs = new Registry<IComponentArray>();
+        
+        agentComponentDefs.Add(new ComponentArray<Objective>());
+        squadComponentDefs.Add(new ComponentArray<SquadObjective>());
+        
+        OnRegisterAgentComponents?.Invoke(agentComponentDefs);
+        foreach (var value in agentComponentDefs.Values)
+        {
+            _agentData.RegisterComponent(value);
+        }
 
-        OnRegisterComponents?.Invoke(_agentData, _squadData);
+        OnRegisterSquadComponents?.Invoke(squadComponentDefs);
+        foreach (var value in squadComponentDefs.Values)
+        {
+            _squadData.RegisterComponent(value);
+        }
     }
 
+    public Task<Agent>[] RegisterActions()
+    {
+        var actions = new Registry<Task<Agent>>();
+        
+        OnRegisterActions?.Invoke(actions);
+        
+        return actions.Values.ToArray();
+    }
+
+    
     public Task<Squad>[] RegisterStrategies()
     {
-        List<Task<Squad>> strategies = [
-            new GotoObjectiveStrategy(_squadData, _agentData, new LocationQueue(), 0.25f)
-        ];
+        var strategies = new Registry<Task<Squad>>();
+        
+        strategies.Add(new GotoObjectiveStrategy(_squadData, _agentData, new LocationQueue(), 0.25f));
         
         OnRegisterStrategies?.Invoke(strategies);
         
-        return strategies.ToArray();
+        return strategies.Values.ToArray();
     }
     
     public Agent AddAgent(BotOwner bot)
     {
         var agent = _agentData.AddEntity(bot, _actionSystem.TaskCount);
-        _squadRegistry.AddAgent(agent);
+        SquadRegistry.AddAgent(agent);
         DebugLog.Write($"Adding {agent} to Phobos");
         _telemetry.AddEntity(agent);
         return agent;
@@ -85,7 +112,7 @@ public class PhobosSystem
         DebugLog.Write($"Removing {agent} from Phobos");
         
         _agentData.RemoveEntity(agent);
-        _squadRegistry.RemoveAgent(agent);
+        SquadRegistry.RemoveAgent(agent);
         
         _actionSystem.RemoveEntity(agent);
         _telemetry.RemoveEntity(agent);

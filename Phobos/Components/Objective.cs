@@ -10,7 +10,7 @@ public enum ObjectiveStatus
     Failed
 }
 
-public class Objective(int id) : Component(id)
+public class Objective()
 {
     public Location Location;
     public float DistanceSqr;

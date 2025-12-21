@@ -1,17 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using Phobos.Components;
 
 namespace Phobos.Data;
 
 public interface IComponentArray
 {
-    public Component Add(int id);
-    public bool Remove(int id);
+    public void Add(int id);
+    public void Remove(int id);
 }
 
-public class ComponentArray<T>(Func<int, T> builderFunc, int capacity = 16) : IComponentArray where T : Component
+public class ComponentArray<T>(int capacity = 16) : IComponentArray where T : class, new()
 {
     private readonly List<T> _data = new(capacity);
 
@@ -21,9 +20,9 @@ public class ComponentArray<T>(Func<int, T> builderFunc, int capacity = 16) : IC
         get => _data[id];
     }
 
-    public Component Add(int id)
+    public void Add(int id)
     {
-        var component = builderFunc(id);
+        T component = new();
 
         if (id >= _data.Count)
         {
@@ -40,14 +39,10 @@ public class ComponentArray<T>(Func<int, T> builderFunc, int capacity = 16) : IC
         {
             _data[id] = component;
         }
-
-        return component;
     }
 
-    public bool Remove(int id)
+    public void Remove(int id)
     {
-        var success = _data[id] != null;
-
         // If the id is the last entry, remove it altogether
         if (id == _data.Count - 1)
         {
@@ -57,7 +52,5 @@ public class ComponentArray<T>(Func<int, T> builderFunc, int capacity = 16) : IC
         {
             _data[id] = null;
         }
-
-        return success;
     }
 }

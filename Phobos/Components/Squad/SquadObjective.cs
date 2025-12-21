@@ -2,7 +2,7 @@
 
 namespace Phobos.Components.Squad;
 
-public class SquadObjective(int id) : Component(id)
+public class SquadObjective
 {
     public Location Location;
 }

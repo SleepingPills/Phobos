@@ -3,7 +3,7 @@ using Phobos.Navigation;
 
 namespace Phobos.Components;
 
-public class Guard(int id) : Component(id)
+public class Guard
 {
     public Location Location;
     

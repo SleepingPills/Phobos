@@ -33,14 +33,13 @@ public class Dataset<T, TE>(TE entities) where TE : EntityArray<T> where T : Ent
         }
     }
     
-    public void RegisterComponent<TC>(Func<int, TC> builder) where TC : Component
+    public void RegisterComponent(IComponentArray componentArray)
     {
-        var componentArray = new ComponentArray<TC>(builder);
         _componentsTypeMap.Add(componentArray.GetType(), componentArray);
         _components.Add(componentArray);
     }
-
-    public ComponentArray<TC> GetComponentArray<TC>() where TC : Component
+    
+    public ComponentArray<TC> GetComponentArray<TC>() where TC : class, new()
     {
         return (ComponentArray<TC>)_componentsTypeMap[typeof(ComponentArray<TC>)];
     }
