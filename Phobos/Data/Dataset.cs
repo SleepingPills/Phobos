@@ -25,7 +25,7 @@ public class Dataset<T, TE>(TE entities) where TE : EntityArray<T> where T : Ent
     
     public void RemoveEntity(T entity)
     {
-        DebugLog.Write($"Removing {entity} from {GetType().Name}");
+        DebugLog.Write($"Removing {entity} from {this}");
         Entities.Remove(entity);
         
         for (var i = 0; i < _components.Count; i++)
@@ -37,7 +37,7 @@ public class Dataset<T, TE>(TE entities) where TE : EntityArray<T> where T : Ent
     
     public void RegisterComponent(IComponentArray componentArray)
     {
-        DebugLog.Write($"Registering {componentArray} in {GetType().Name}");
+        DebugLog.Write($"Registering {componentArray} in {this}");
         _componentsTypeMap.Add(componentArray.GetType(), componentArray);
         _components.Add(componentArray);
     }
@@ -46,6 +46,11 @@ public class Dataset<T, TE>(TE entities) where TE : EntityArray<T> where T : Ent
     {
         return (ComponentArray<TC>)_componentsTypeMap[typeof(ComponentArray<TC>)];
     }
+
+    public override string ToString()
+    {
+        return GetType().Name;
+    }
 }
 
 public class AgentData() : Dataset<Agent, AgentArray>(new AgentArray())
@@ -53,7 +58,7 @@ public class AgentData() : Dataset<Agent, AgentArray>(new AgentArray())
     public Agent AddEntity(BotOwner bot, int taskCount)
     {
         var agent = Entities.Add(bot, taskCount);
-        DebugLog.Write($"Adding {agent} to {GetType().Name}");
+        DebugLog.Write($"Adding {agent} to {this}");
         
         AddEntityComponents(agent);
                 
@@ -66,7 +71,7 @@ public class SquadData() : Dataset<Squad, SquadArray>(new SquadArray())
     public Squad AddEntity(int taskCount)
     {
         var squad = Entities.Add(taskCount);
-        DebugLog.Write($"Adding {squad} to {GetType().Name}");
+        DebugLog.Write($"Adding {squad} to {this}");
         
         AddEntityComponents(squad);
                 

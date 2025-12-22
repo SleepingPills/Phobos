@@ -29,6 +29,8 @@ Squads will influence agent behavior by modifying specific components. E.g. the 
 # Strategies
 ## GotoObjective
 ### Utility
+
+
 ### Logic
 
 

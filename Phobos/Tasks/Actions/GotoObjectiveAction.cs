@@ -1,11 +1,17 @@
 ﻿using Phobos.Components;
 using Phobos.Data;
 using Phobos.Entities;
+using UnityEngine;
 
 namespace Phobos.Tasks.Actions;
 
 public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Agent>(hysteresis)
 {
+    private const float UtilityBase = 0.5f;
+    private const float UtilityBoost = 0.15f;
+    private const float UtilityBoostMaxDistSqr = 50f * 50f;
+    private const float UtilityBoostMinDistSqr = 5f * 5f;
+
     private readonly ComponentArray<Objective> _objectiveComponents = dataset.GetComponentArray<Objective>();
     
     public override void UpdateScore(int ordinal)
@@ -16,11 +22,20 @@ public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Age
             var agent = agents[i];
             var objective = _objectiveComponents[agent.Id];
 
-            // We only participate in the scoring if we have an objective
-            if (objective.Location != null)
+            if (objective.Location == null)
             {
-                agent.TaskScores[ordinal] = 0.5f;
+                agent.TaskScores[ordinal] = 0;
+                continue;
             }
+            
+            // Baseline utility is 0.5f, boosted up to 0.65f as the bot gets nearer the objective. Once within the objective radius, the
+            // utility falls off sharply.
+            var distSqr = (objective.Location.Position - agent.Bot.Position).sqrMagnitude;
+            
+            var utilityBoostFactor = Mathf.InverseLerp(UtilityBoostMaxDistSqr, UtilityBoostMinDistSqr, distSqr);
+            var utilityDecay = Mathf.InverseLerp(0f, UtilityBoostMinDistSqr, distSqr);
+            
+            agent.TaskScores[ordinal] = utilityDecay * (UtilityBase + utilityBoostFactor * UtilityBoost);
         }
     }
 
@@ -33,75 +48,3 @@ public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Age
         }
     }
 }
-
-// public class ObjectiveAction(MovementSystem movementSystem) : BaseAction(hysteresis: 0.25f)
-// {
-//     private const float ObjectiveReachedDistSqr = 10f * 10f;
-//     private const float ObjectiveVicinityDistSqr = 35f * 35f;
-//
-//     public override void Activate(Agent agent)
-//     {
-//         base.Activate(agent);
-//         var objective = agent.Task.Objective;
-//         
-//         objective.Location = location;
-//         objective.DistanceSqr = (objective.Location.Position - agent.Bot.Position).sqrMagnitude;
-//         
-//         // Short circuit if we are already within the AO
-//         if (objective.DistanceSqr <= ObjectiveReachedDistSqr)
-//         {
-//             objective.Status = ObjectiveStatus.Success;
-//             return;
-//         }
-//         
-//         objective.Status = ObjectiveStatus.Active;
-//         
-//         agent.Task.Current = objective;
-//         agent.Movement.Speed = 1f;
-//         
-//         Activate(agent);
-//         
-//         movementSystem.MoveToDestination(agent, location.Position);
-//         DebugLog.Write($"Assigned {objective} to {agent}");
-//     }
-//
-//     public void Update()
-//     {
-//         for (var i = 0; i < Agents.Count; i++)
-//         {
-//             var actor = Agents[i];
-//             UpdateObjective(actor);
-//         }
-//     }
-//
-//     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-//     private void UpdateObjective(Agent agent)
-//     {
-//         var bot = agent.Bot;
-//         var objective = agent.Task.Objective;
-//     
-//         if (agent.Movement.Status == MovementStatus.Failed)
-//         {
-//             objective.Status = ObjectiveStatus.Failed;
-//             agent.IsPhobosActive = false;
-//             DebugLog.Write($"{agent} {objective} failed, disengaging Phobos.");
-//         }
-//     
-//         if (objective.Status != ObjectiveStatus.Active)
-//         {
-//             Deactivate(agent);
-//             return;
-//         }
-//     
-//         objective.DistanceSqr = (objective.Location.Position - bot.Position).sqrMagnitude;
-//     
-//         if (objective.DistanceSqr <= ObjectiveReachedDistSqr)
-//         {
-//             objective.Status = ObjectiveStatus.Success;
-//             Deactivate(agent);
-//         }
-//     
-//         var targetSpeed = Mathf.Lerp(0.5f, 1f, Mathf.Pow(objective.DistanceSqr / ObjectiveVicinityDistSqr, 2));
-//         agent.Movement.Speed = targetSpeed;
-//     }
-// }

@@ -7,15 +7,11 @@ namespace Phobos.Orchestration;
 
 public class TaskSystem<TEntity>(Task<TEntity>[] tasks) where TEntity : Entity
 {
-    public int TaskCount
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => tasks.Length;
-    }
+    public readonly Task<TEntity>[] Tasks = tasks;
     
     public void RemoveEntity(TEntity entity)
     {
-        DebugLog.Write($"Removing {entity} from {GetType().Name}");
+        DebugLog.Write($"Removing {entity} from {this}");
         entity.TaskAssignment.Task?.Deactivate(entity);
         entity.TaskAssignment = new TaskAssignment();
     }
@@ -23,18 +19,18 @@ public class TaskSystem<TEntity>(Task<TEntity>[] tasks) where TEntity : Entity
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void UpdateScores()
     {
-        for (var i = 0; i < tasks.Length; i++)
+        for (var i = 0; i < Tasks.Length; i++)
         {
-            tasks[i].UpdateScore(i);
+            Tasks[i].UpdateScore(i);
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void UpdateTasks()
     {
-        for (var i = 0; i < tasks.Length; i++)
+        for (var i = 0; i < Tasks.Length; i++)
         {
-            var action = tasks[i];
+            var action = Tasks[i];
             action.Update();
         }
     }
@@ -56,9 +52,9 @@ public class TaskSystem<TEntity>(Task<TEntity>[] tasks) where TEntity : Entity
 
         Task<TEntity> nextTask = null;
 
-        for (var j = 0; j < tasks.Length; j++)
+        for (var j = 0; j < Tasks.Length; j++)
         {
-            var task = tasks[j];
+            var task = Tasks[j];
             var score = entity.TaskScores[j];
 
             if (score <= highestScore) continue;
@@ -77,5 +73,10 @@ public class TaskSystem<TEntity>(Task<TEntity>[] tasks) where TEntity : Entity
         nextTask.Activate(entity);
 
         entity.TaskAssignment = new TaskAssignment(nextTask, nextTaskOrdinal);
+    }
+
+    public override string ToString()
+    {
+        return GetType().Name;
     }
 }

@@ -3,7 +3,6 @@ using System.Reflection;
 using Comfort.Common;
 using EFT;
 using Phobos.Diag;
-using Phobos.ECS;
 using Phobos.Navigation;
 using Phobos.Orchestration;
 using SPT.Reflection.Patching;
@@ -25,18 +24,19 @@ public class PhobosInitPatch : ModulePatch
             return;
         
         DebugLog.Write("Initializing Phobos");
-
-        var telemetry = new Telemetry();
         
         // Services
         var navJobExecutor = new NavJobExecutor();
         
         // Systems
-        var phobosSystem = new PhobosSystem(telemetry);
+        var phobosSystem = new PhobosSystem();
+        
+        // Telemetry
+        var telemetry = new Telemetry(phobosSystem);
         
         // Registry
-        Singleton<PhobosSystem>.Create(phobosSystem);
         Singleton<NavJobExecutor>.Create(navJobExecutor);
+        Singleton<PhobosSystem>.Create(phobosSystem);
         Singleton<Telemetry>.Create(telemetry);
     }
 }
@@ -76,9 +76,9 @@ public class PhobosDisposePatch : ModulePatch
     public static void Postfix()
     {
         Plugin.Log.LogInfo("Disposing of static & long lived objects.");
-        Singleton<PhobosSystem>.Release(Singleton<PhobosSystem>.Instance);
-        Singleton<NavJobExecutor>.Release(Singleton<NavJobExecutor>.Instance);
         Singleton<Telemetry>.Release(Singleton<Telemetry>.Instance);
+        Singleton<NavJobExecutor>.Release(Singleton<NavJobExecutor>.Instance);
+        Singleton<PhobosSystem>.Release(Singleton<PhobosSystem>.Instance);
         Plugin.Log.LogInfo("Disposing complete.");
     }
 }

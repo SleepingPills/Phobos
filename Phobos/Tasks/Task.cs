@@ -15,7 +15,7 @@ public abstract class Task<T>(float hysteresis) : BaseTask(hysteresis) where T: 
 
     public virtual void Activate(T entity)
     {
-        DebugLog.Write($"{GetType().Name} activating {entity}");
+        DebugLog.Write($"{this} activating {entity}");
         
         if (!_entitySet.Add(entity))
             return;
@@ -25,7 +25,7 @@ public abstract class Task<T>(float hysteresis) : BaseTask(hysteresis) where T: 
 
     public override void Deactivate(Entity entity)
     {
-        DebugLog.Write($"{GetType().Name} deactivating {entity}");
+        DebugLog.Write($"{this} deactivating {entity}");
         
         if (!_entitySet.Remove(entity))
             return;
@@ -47,4 +47,9 @@ public abstract class BaseTask(float hysteresis)
     public readonly float Hysteresis = hysteresis;
     
     public abstract void Deactivate(Entity entity);
+
+    public override string ToString()
+    {
+        return GetType().Name;
+    }
 }

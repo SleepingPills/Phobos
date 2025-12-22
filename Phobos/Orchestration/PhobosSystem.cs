@@ -31,52 +31,46 @@ public class PhobosSystem
         get;
     }
 
-    private readonly AgentData _agentData;
-    private readonly SquadData _squadData;
+    public readonly AgentData AgentData;
+    public readonly SquadData SquadData;
     
-    private readonly ActionSystem _actionSystem;
-    private readonly StrategySystem _strategySystem;
+    public readonly ActionSystem ActionSystem;
+    public readonly StrategySystem StrategySystem;
 
-    private readonly Telemetry _telemetry;
-
-    public PhobosSystem(Telemetry telemetry)
+    public PhobosSystem()
     {
-        _agentData = new AgentData();
-        _squadData = new SquadData();
+        AgentData = new AgentData();
+        SquadData = new SquadData();
         
         RegisterComponents();
         var actions = RegisterActions();
         var strategies = RegisterStrategies();
         
-        _actionSystem = new ActionSystem(_agentData, actions);
-        _strategySystem = new StrategySystem(_squadData, strategies);
+        ActionSystem = new ActionSystem(AgentData, actions);
+        StrategySystem = new StrategySystem(SquadData, strategies);
         
-        SquadRegistry =  new SquadRegistry(_squadData, _strategySystem, telemetry);
-        
-        _telemetry = telemetry;
+        SquadRegistry =  new SquadRegistry(SquadData, StrategySystem);
     }
     
     public Agent AddAgent(BotOwner bot)
     {
-        var agent = _agentData.AddEntity(bot, _actionSystem.TaskCount);
+        var agent = AgentData.AddEntity(bot, ActionSystem.Tasks.Length);
         SquadRegistry.AddAgent(agent);
-        _telemetry.AddEntity(agent);
         return agent;
     }
 
     public void RemoveAgent(Agent agent)
     {
-        _agentData.RemoveEntity(agent);
+        AgentData.RemoveEntity(agent);
         SquadRegistry.RemoveAgent(agent);
         
-        _actionSystem.RemoveEntity(agent);
-        _telemetry.RemoveEntity(agent);
+        ActionSystem.RemoveEntity(agent);
     }
 
     public void Update()
     {
-        _actionSystem.Update();
-        _strategySystem.Update();
+        ActionSystem.Update();
+        StrategySystem.Update();
     }
     
     private void RegisterComponents()
@@ -90,13 +84,13 @@ public class PhobosSystem
         OnRegisterAgentComponents?.Invoke(agentComponentDefs);
         foreach (var value in agentComponentDefs.Values)
         {
-            _agentData.RegisterComponent(value);
+            AgentData.RegisterComponent(value);
         }
 
         OnRegisterSquadComponents?.Invoke(squadComponentDefs);
         foreach (var value in squadComponentDefs.Values)
         {
-            _squadData.RegisterComponent(value);
+            SquadData.RegisterComponent(value);
         }
     }
     
@@ -104,7 +98,7 @@ public class PhobosSystem
     {
         var actions = new Registry<Task<Agent>>();
         
-        actions.Add(new GotoObjectiveAction(_agentData, 0.25f));
+        actions.Add(new GotoObjectiveAction(AgentData, 0.25f));
         
         OnRegisterActions?.Invoke(actions);
         
@@ -116,7 +110,7 @@ public class PhobosSystem
     {
         var strategies = new Registry<Task<Squad>>();
         
-        strategies.Add(new GotoObjectiveStrategy(_squadData, _agentData, new LocationQueue(), 0.25f));
+        strategies.Add(new GotoObjectiveStrategy(SquadData, AgentData, new LocationQueue(), 0.25f));
         
         OnRegisterStrategies?.Invoke(strategies);
         

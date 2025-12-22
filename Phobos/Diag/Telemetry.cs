@@ -1,67 +1,23 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using System.Text;
 using Phobos.Entities;
-using Phobos.Tasks.Actions;
-using Phobos.Tasks.Strategies;
+using Phobos.Orchestration;
 
 namespace Phobos.Diag;
 
-public class Telemetry
+public class Telemetry(PhobosSystem phobos)
 {
-    // private readonly Dictionary<Agent, AgentTelemetry> _agentTelemetry = new();
-    // private readonly Dictionary<Squad, SquadTelemetry> _squadTelemetry = new();
-
-    public string GenerateUtilityReport()
-    {
-        return "";
-    }
-
-    public string GenerateAgentReport(Agent agent)
-    {
-        return "";
-    }
-
     [Conditional("DEBUG")]
-    public void UpdateScores(float[] scores)
+    public void GenerateUtilityReport(Agent agent, StringBuilder sb)
     {
-        // var telemetry = _agentTelemetry[agent];
-        // telemetry.Scores.Clear();
-        // telemetry.Scores.AddRange(agent.Actions);
-    }
-    
-    [Conditional("DEBUG")]
-    public void UpdateScores(Squad squad)
-    {
-        // var telemetry = _squadTelemetry[squad];
-        // telemetry.Scores.Clear();
-        // telemetry.Scores.AddRange(squad.Strategies);
-    }
-
-    [Conditional("DEBUG")]
-    public void AddEntity(Agent agent)
-    {
-        DebugLog.Write($"Adding {agent} to Telemetry");
-        // _agentTelemetry[agent] = new();
-    }
-    
-    [Conditional("DEBUG")]
-    public void AddEntity(Squad squad)
-    {
-        DebugLog.Write($"Adding {squad} to Telemetry");
-        // _squadTelemetry[squad] = new();
-    }
-
-    [Conditional("DEBUG")]
-    public void RemoveEntity(Agent agent)
-    {
-        DebugLog.Write($"Removing {agent} from Telemetry");
-        // _agentTelemetry.Remove(agent);
-    }
-    
-    [Conditional("DEBUG")]
-    public void RemoveEntity(Squad squad)
-    {
-        DebugLog.Write($"Removing {squad} from Telemetry");
-        // _squadTelemetry.Remove(squad);
+        var actions = phobos.ActionSystem.Tasks;
+        
+        for (var i = 0; i < actions.Length; i++)
+        {
+            var action = actions[i];
+            var score = agent.TaskScores[i];
+            var prefix = action == agent.TaskAssignment.Task ? "*" : "";
+            sb.AppendLine($"{prefix}{action.GetType().Name}: {score:0.00}");
+        }
     }
 }

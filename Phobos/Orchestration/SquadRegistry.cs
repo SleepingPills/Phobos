@@ -5,7 +5,7 @@ using Phobos.Entities;
 
 namespace Phobos.Orchestration;
 
-public class SquadRegistry(SquadData squadData, StrategySystem strategySystem, Telemetry telemetry)
+public class SquadRegistry(SquadData squadData, StrategySystem strategySystem)
 {
     private readonly Dictionary<int, int> _squadIdMap = new(16);
 
@@ -28,9 +28,8 @@ public class SquadRegistry(SquadData squadData, StrategySystem strategySystem, T
         }
         else
         {
-            squad = squadData.AddEntity(strategySystem.TaskCount);
+            squad = squadData.AddEntity(strategySystem.Tasks.Length);
             _squadIdMap.Add(bsgSquadId, squad.Id);
-            telemetry.AddEntity(squad);
             DebugLog.Write($"Registered new {squad}");
         }
 
@@ -51,6 +50,5 @@ public class SquadRegistry(SquadData squadData, StrategySystem strategySystem, T
         DebugLog.Write($"Removing empty {squad}");
         squadData.Entities.Remove(squad);
         strategySystem.RemoveEntity(squad);
-        telemetry.RemoveEntity(squad);
     }
 }

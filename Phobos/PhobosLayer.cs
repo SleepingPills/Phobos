@@ -102,13 +102,14 @@ public class PhobosLayer : CustomLayer
 
     public override void BuildDebugText(StringBuilder sb)
     {
-        sb.AppendLine($"{_agent}");
-        // sb.AppendLine($"{_agent.Task}");
-        // sb.AppendLine($"{_agent.Movement}");
+        sb.AppendLine($"{_agent} Task: {_agent.TaskAssignment.Task}");
+        sb.AppendLine("*** Generic ***");
         sb.AppendLine($"HasEnemy: {BotOwner.Memory.HaveEnemy} UnderFire: {BotOwner.Memory.IsUnderFire}");
         sb.AppendLine($"Pose: {BotOwner.GetPlayer.MovementContext.PoseLevel} Speed: {BotOwner.Mover?.DestMoveSpeed}");
-        sb.AppendLine($"Standby: {BotOwner.StandBy.StandByType} candostandby: {BotOwner.StandBy.CanDoStandBy}");
         sb.AppendLine("*** Squad ***");
         sb.AppendLine($"{_squad}, size: {_squad.Size}");
+        sb.AppendLine("*** Actions ***");
+        Singleton<Telemetry>.Instance.GenerateUtilityReport(_agent, sb);
+        // sb.AppendLine($"Standby: {BotOwner.StandBy.StandByType} CanDoStandBy: {BotOwner.StandBy.CanDoStandBy}");
     }
 }
