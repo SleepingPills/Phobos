@@ -6,13 +6,15 @@ public enum ObjectiveStatus
 {
     Suspended,
     Active,
-    Success,
     Failed
 }
 
-public class Objective()
+public class Objective
 {
     public Location Location;
-    public float DistanceSqr;
-    public ObjectiveStatus Status = ObjectiveStatus.Suspended;
+
+    public override string ToString()
+    {
+        return $"{Location}";
+    }
 }

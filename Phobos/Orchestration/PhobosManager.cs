@@ -4,7 +4,6 @@ using EFT;
 using Phobos.Components;
 using Phobos.Components.Squad;
 using Phobos.Data;
-using Phobos.Diag;
 using Phobos.Entities;
 using Phobos.Navigation;
 using Phobos.Tasks;
@@ -13,11 +12,11 @@ using Phobos.Tasks.Strategies;
 
 namespace Phobos.Orchestration;
 
-public class PhobosSystem
+public class PhobosManager
 {
-    public delegate void RegisterComponentsDelegate(Registry<IComponentArray> registry);
-    public delegate void RegisterActionsDelegate(Registry<Task<Agent>> actions);
-    public delegate void RegisterStrategiesDelegate(Registry<Task<Squad>> strategies);
+    public delegate void RegisterComponentsDelegate(DefinitionRegistry<IComponentArray> definitionRegistry);
+    public delegate void RegisterActionsDelegate(DefinitionRegistry<Task<Agent>> actions);
+    public delegate void RegisterStrategiesDelegate(DefinitionRegistry<Task<Squad>> strategies);
     
     public static RegisterComponentsDelegate OnRegisterAgentComponents;
     public static RegisterComponentsDelegate OnRegisterSquadComponents;
@@ -34,10 +33,10 @@ public class PhobosSystem
     public readonly AgentData AgentData;
     public readonly SquadData SquadData;
     
-    public readonly ActionSystem ActionSystem;
-    public readonly StrategySystem StrategySystem;
-
-    public PhobosSystem()
+    public readonly ActionManager ActionManager;
+    public readonly StrategyManager StrategyManager;
+    
+    public PhobosManager(NavJobExecutor navJobExecutor)
     {
         AgentData = new AgentData();
         SquadData = new SquadData();
@@ -46,15 +45,15 @@ public class PhobosSystem
         var actions = RegisterActions();
         var strategies = RegisterStrategies();
         
-        ActionSystem = new ActionSystem(AgentData, actions);
-        StrategySystem = new StrategySystem(SquadData, strategies);
+        ActionManager = new ActionManager(AgentData, actions);
+        StrategyManager = new StrategyManager(SquadData, strategies);
         
-        SquadRegistry =  new SquadRegistry(SquadData, StrategySystem);
-    }
+        SquadRegistry = new SquadRegistry(SquadData, StrategyManager);
+        }
     
     public Agent AddAgent(BotOwner bot)
     {
-        var agent = AgentData.AddEntity(bot, ActionSystem.Tasks.Length);
+        var agent = AgentData.AddEntity(bot, ActionManager.Tasks.Length);
         SquadRegistry.AddAgent(agent);
         return agent;
     }
@@ -64,21 +63,22 @@ public class PhobosSystem
         AgentData.RemoveEntity(agent);
         SquadRegistry.RemoveAgent(agent);
         
-        ActionSystem.RemoveEntity(agent);
+        ActionManager.RemoveEntity(agent);
     }
 
     public void Update()
     {
-        ActionSystem.Update();
-        StrategySystem.Update();
+        ActionManager.Update();
+        StrategyManager.Update();
     }
     
     private void RegisterComponents()
     {
-        var agentComponentDefs = new Registry<IComponentArray>();
-        var squadComponentDefs = new Registry<IComponentArray>();
+        var agentComponentDefs = new DefinitionRegistry<IComponentArray>();
+        var squadComponentDefs = new DefinitionRegistry<IComponentArray>();
         
         agentComponentDefs.Add(new ComponentArray<Objective>());
+        
         squadComponentDefs.Add(new ComponentArray<SquadObjective>());
         
         OnRegisterAgentComponents?.Invoke(agentComponentDefs);
@@ -96,7 +96,7 @@ public class PhobosSystem
     
     private Task<Agent>[] RegisterActions()
     {
-        var actions = new Registry<Task<Agent>>();
+        var actions = new DefinitionRegistry<Task<Agent>>();
         
         actions.Add(new GotoObjectiveAction(AgentData, 0.25f));
         
@@ -108,7 +108,7 @@ public class PhobosSystem
     
     private Task<Squad>[] RegisterStrategies()
     {
-        var strategies = new Registry<Task<Squad>>();
+        var strategies = new DefinitionRegistry<Task<Squad>>();
         
         strategies.Add(new GotoObjectiveStrategy(SquadData, AgentData, new LocationQueue(), 0.25f));
         

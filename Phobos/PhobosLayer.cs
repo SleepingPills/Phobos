@@ -28,7 +28,7 @@ public class PhobosLayer : CustomLayer
 {
     private const string LayerName = "PhobosLayer";
 
-    private readonly PhobosSystem _phobosSystem;
+    private readonly PhobosManager _phobosManager;
     private readonly Agent _agent;
     private readonly Squad _squad; 
     // private readonly Squad _squad;
@@ -39,12 +39,12 @@ public class PhobosLayer : CustomLayer
         botOwner.StandBy.CanDoStandBy = false;
         botOwner.StandBy.Activate();
         
-        _phobosSystem = Singleton<PhobosSystem>.Instance;
+        _phobosManager = Singleton<PhobosManager>.Instance;
         
-        _agent = _phobosSystem.AddAgent(botOwner);
+        _agent = _phobosManager.AddAgent(botOwner);
 
         var bsgSquadId = _agent.Bot.BotsGroup.Id;
-        _squad = _phobosSystem.SquadRegistry[bsgSquadId];
+        _squad = _phobosManager.SquadRegistry[bsgSquadId];
 
         botOwner.Brain.BaseBrain.OnLayerChangedTo += OnLayerChanged;
         botOwner.GetPlayer.OnPlayerDead += OnDead;
@@ -54,7 +54,7 @@ public class PhobosLayer : CustomLayer
     {
         player.OnPlayerDead -= OnDead;
         _agent.IsLayerActive = false;
-        _phobosSystem.RemoveAgent(_agent);
+        _phobosManager.RemoveAgent(_agent);
     }
 
     private void OnLayerChanged(AICoreLayerClass<BotLogicDecision> layer)
@@ -103,6 +103,7 @@ public class PhobosLayer : CustomLayer
     public override void BuildDebugText(StringBuilder sb)
     {
         sb.AppendLine($"{_agent} Task: {_agent.TaskAssignment.Task}");
+        sb.AppendLine($"{_agent.Movement}");
         sb.AppendLine("*** Generic ***");
         sb.AppendLine($"HasEnemy: {BotOwner.Memory.HaveEnemy} UnderFire: {BotOwner.Memory.IsUnderFire}");
         sb.AppendLine($"Pose: {BotOwner.GetPlayer.MovementContext.PoseLevel} Speed: {BotOwner.Mover?.DestMoveSpeed}");

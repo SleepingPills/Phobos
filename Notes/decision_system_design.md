@@ -33,6 +33,8 @@ Path Job Robustness:
 * When handling the path job itself, check if it's the same instance as the one
 stashed away on the agent, if it isn't (e.g. the action got deactivated and current job is null) we skip the job handling. This fixes the issue of a path job completing after deactivation.
 
+Question: how do we efficiently match the movement target to objective target.
+
 # Actions
 ## GotoObjective
 ### Utility

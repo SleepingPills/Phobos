@@ -45,6 +45,30 @@ public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Age
         {
             var agent = ActiveEntities[i];
             var objective = _objectiveComponents[agent.Id];
+            
+            if (objective.Location == null)
+                continue;
+
+            // TODO: We need some movement state handling here to avoid resubmitting the move job repeatedly in case it takes multiple frames to calc.
+            //       We stash away the nav job and only submit a new one once it has been cleared?
+            // if (agent.Movement.Target != objective.Location.Position)
+            // {
+            //     agent.Movement.Target = objective.Location.Position;
+            //     movementSystem.MoveToDestination(agent, objective.Location.Position);
+            // }
         }
+    }
+
+    public override void Activate(Agent entity)
+    {
+        // TODO: Check if we are currently moving, and whether the move target is very close to our objective, if yes, leave it be. 
+        base.Activate(entity);
+    }
+
+    public override void Deactivate(Entity entity)
+    {
+        var objective = _objectiveComponents[entity.Id];
+        // TODO: Set the status to suspended
+        base.Deactivate(entity);
     }
 }

@@ -5,7 +5,7 @@ using Phobos.Tasks;
 
 namespace Phobos.Orchestration;
 
-public class TaskSystem<TEntity>(Task<TEntity>[] tasks) where TEntity : Entity
+public class BaseTaskManager<TEntity>(Task<TEntity>[] tasks) where TEntity : Entity
 {
     public readonly Task<TEntity>[] Tasks = tasks;
     

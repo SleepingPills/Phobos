@@ -20,7 +20,7 @@ public class PhobosInitPatch : ModulePatch
     public static void Postfix()
     {
         // For some odd reason the constructor appears to be called twice. Prevent running the second time.
-        if (Singleton<PhobosSystem>.Instantiated)
+        if (Singleton<PhobosManager>.Instantiated)
             return;
         
         DebugLog.Write("Initializing Phobos");
@@ -28,15 +28,15 @@ public class PhobosInitPatch : ModulePatch
         // Services
         var navJobExecutor = new NavJobExecutor();
         
-        // Systems
-        var phobosSystem = new PhobosSystem();
+        // Core
+        var phobosManager = new PhobosManager(navJobExecutor);
         
         // Telemetry
-        var telemetry = new Telemetry(phobosSystem);
+        var telemetry = new Telemetry(phobosManager);
         
         // Registry
         Singleton<NavJobExecutor>.Create(navJobExecutor);
-        Singleton<PhobosSystem>.Create(phobosSystem);
+        Singleton<PhobosManager>.Create(phobosManager);
         Singleton<Telemetry>.Create(telemetry);
     }
 }
@@ -60,7 +60,7 @@ public class PhobosFrameUpdatePatch : ModulePatch
         if (!__instance.Bool_0)
             return;
         
-        Singleton<PhobosSystem>.Instance.Update();
+        Singleton<PhobosManager>.Instance.Update();
         Singleton<NavJobExecutor>.Instance.Update();
     }
 }
@@ -78,7 +78,7 @@ public class PhobosDisposePatch : ModulePatch
         Plugin.Log.LogInfo("Disposing of static & long lived objects.");
         Singleton<Telemetry>.Release(Singleton<Telemetry>.Instance);
         Singleton<NavJobExecutor>.Release(Singleton<NavJobExecutor>.Instance);
-        Singleton<PhobosSystem>.Release(Singleton<PhobosSystem>.Instance);
+        Singleton<PhobosManager>.Release(Singleton<PhobosManager>.Instance);
         Plugin.Log.LogInfo("Disposing complete.");
     }
 }

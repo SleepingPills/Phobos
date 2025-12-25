@@ -10,7 +10,7 @@ using Phobos.Tasks.Strategies;
 
 namespace Phobos.Orchestration;
 
-public class StrategySystem(SquadData dataset, Task<Squad>[] tasks) : TaskSystem<Squad>(tasks)
+public class StrategyManager(SquadData dataset, Task<Squad>[] tasks) : BaseTaskManager<Squad>(tasks)
 {
     private readonly TimePacing _pacing = new(0.5f);
     

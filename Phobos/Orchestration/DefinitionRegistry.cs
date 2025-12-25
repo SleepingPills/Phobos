@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Phobos.Orchestration;
 
-public class Registry<T>
+public class DefinitionRegistry<T>
 {
     private readonly Dictionary<Type, T> _defs = new();
     

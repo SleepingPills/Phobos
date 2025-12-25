@@ -5,12 +5,12 @@ using Phobos.Orchestration;
 
 namespace Phobos.Diag;
 
-public class Telemetry(PhobosSystem phobos)
+public class Telemetry(PhobosManager phobos)
 {
     [Conditional("DEBUG")]
     public void GenerateUtilityReport(Agent agent, StringBuilder sb)
     {
-        var actions = phobos.ActionSystem.Tasks;
+        var actions = phobos.ActionManager.Tasks;
         
         for (var i = 0; i < actions.Length; i++)
         {
