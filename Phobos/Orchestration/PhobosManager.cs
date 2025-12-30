@@ -66,6 +66,7 @@ public class PhobosManager
     public Agent AddAgent(BotOwner bot)
     {
         var agent = AgentData.AddEntity(bot, ActionManager.Tasks.Length);
+        MovementSystem.Reset(agent);
         SquadRegistry.AddAgent(agent);
         return agent;
     }

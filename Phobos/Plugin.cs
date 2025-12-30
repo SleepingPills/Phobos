@@ -20,6 +20,7 @@ public class Plugin : BaseUnityPlugin
 
     public static ManualLogSource Log;
 
+    private static ConfigEntry<int> MaxScavSquadSize;
     private static ConfigEntry<bool> _loggingEnabled;
     
     private void Awake()
@@ -57,10 +58,10 @@ public class Plugin : BaseUnityPlugin
         // Misc setup
         var brains = new List<string>()
         {
-            BsgBrain.PMC.ToString(),
-            BsgBrain.PmcUsec.ToString(),
-            BsgBrain.PmcBear.ToString(),
-            BsgBrain.Assault.ToString()
+            nameof(BsgBrain.PMC),
+            nameof(BsgBrain.PmcUsec),
+            nameof(BsgBrain.PmcBear),
+            nameof(BsgBrain.Assault)
         };
         
         BrainManager.AddCustomLayer(typeof(PhobosLayer), brains,19);
@@ -71,13 +72,17 @@ public class Plugin : BaseUnityPlugin
     
     private void SetupConfig()
     {
-        // const string general = "01. General";
+        const string general = "01. General";
         const string debug = "02. Debug";
 
         /*
          * General
          */
-        
+        MaxScavSquadSize = Config.Bind(general, "Max Scav Squad Size", 3, new ConfigDescription(
+            "Does what it says on the tin.",
+            new AcceptableValueRange<int>(1, 10),
+            new ConfigurationManagerAttributes { Order = 1 }
+        ));
 
         /*
          * Deboog

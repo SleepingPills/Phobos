@@ -43,7 +43,9 @@ public class GotoObjectiveStrategy(SquadData squadData, AgentData agentData, Loc
                 if (squadObjective.Location == agentObjective.Location) continue;
         
                 DebugLog.Write($"{agent} assigned objective {squadObjective.Location}");
+                
                 agentObjective.Location = squadObjective.Location;
+                agentObjective.Status = ObjectiveStatus.Suspended;
             }
         }
     }

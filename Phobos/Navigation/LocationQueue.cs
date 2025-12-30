@@ -11,7 +11,7 @@ namespace Phobos.Navigation;
 public class LocationQueue
 {
     private readonly Queue<Location> _queue;
-    private readonly HashSet<Location> _dupeCheck = new ();
+    private readonly HashSet<Location> _dupeCheck = [];
 
     public LocationQueue()
     {

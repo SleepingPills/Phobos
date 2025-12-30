@@ -12,9 +12,10 @@ public enum ObjectiveStatus
 public class Objective
 {
     public Location Location;
+    public ObjectiveStatus Status = ObjectiveStatus.Suspended;
 
     public override string ToString()
     {
-        return $"{Location}";
+        return $"Objective({Location}, Status: {Status})";
     }
 }

@@ -117,6 +117,11 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
         var bot = agent.Bot;
         var movement = agent.Movement;
 
+        if (movement.Target == null)
+        {
+            return;
+        }
+        
         var moveSpeedMult = 1f;
         
         if (HandleDoors(agent))
@@ -135,9 +140,21 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
             bot.SetTargetMoveSpeed(targetSpeed);
         }
 
-        if (movement.Target == null)
+        if (Math.Abs(movement.Pose - bot.Mover.TargetPose) > 1e-2)
         {
-            return;
+            bot.SetPose(movement.Pose);
+        }
+
+        if (bot.BotLay.IsLay != movement.Prone)
+        {
+            if (movement.Prone)
+            {
+                bot.BotLay.TryLay();
+            }
+            else
+            {
+                bot.BotLay.GetUp(true);
+            }
         }
 
         var target = movement.Target.Value;
@@ -168,10 +185,6 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
             
             return;
         }
-
-        // We'll enforce these whenever the bot is under way
-        bot.SetPose(1f);
-        bot.BotLay.GetUp(true);
 
         // Move these out into a LookSystem
         var lookPoint = PathHelper.CalculateForwardPointOnPath(
