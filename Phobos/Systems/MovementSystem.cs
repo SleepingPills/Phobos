@@ -36,8 +36,8 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
                     continue;
                 }
 
-                // Discard the move job if the agent is inactive or the latest job is not this job (Phobos might be deactivated, or the bot died, etc...)
-                if (!agent.IsActive || agent.Movement.CurrentJob != job)
+                // Discard the move job if the agent is inactive
+                if (!agent.IsActive)
                     continue;
 
                 StartMovement(agent, job);
@@ -66,9 +66,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Reset(Agent agent)
     {
-        agent.Bot.Mover.Stop();
         agent.Movement.Target = null;
-        agent.Movement.CurrentJob = null;
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -88,23 +86,20 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
     private void ScheduleMoveJob(Agent agent, Vector3 destination)
     {
         // Queues up a pathfinding job, once that's ready, we move the bot along the path.
-        NavMesh.SamplePosition(agent.Bot.Position, out var origin, 5f, NavMesh.AllAreas);
-        var job = navJobExecutor.Submit(origin.position, destination);
+        var job = navJobExecutor.Submit(agent.Bot.Position, destination);
         _moveJobs.Enqueue((agent, job));
-        Reset(agent);
-        agent.Movement.CurrentJob = job;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void StartMovement(Agent agent, NavJob job)
     {
-        agent.Movement.Target = new MovementTarget(job.Destination);
         if (job.Status == NavMeshPathStatus.PathInvalid)
         {
-            
-            agent.Movement.Target = new MovementTarget(agent.Movement.Target?.Position ?? Vector3.zero, true);
+            agent.Movement.Target = new MovementTarget(job.Destination, true);
+            return;
         }
-
+        
+        agent.Movement.Target = new MovementTarget(job.Destination);
         agent.Bot.Mover.GoToByWay(job.Path, 2);
 
         // Debug

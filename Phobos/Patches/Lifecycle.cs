@@ -51,7 +51,6 @@ public class PhobosFrameUpdatePatch : ModulePatch
     protected override MethodBase GetTargetMethod()
     {
         // According to BotsController.method_0, this is where all the bot layer and action logic runs and where the AI decisions should be made.
-        // We run before this method, so that any decision to activate/suspend our layer takes immediate effect.
         return typeof(AICoreControllerClass).GetMethod(nameof(AICoreControllerClass.Update));
     }
 

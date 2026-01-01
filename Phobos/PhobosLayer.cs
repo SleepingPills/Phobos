@@ -27,11 +27,13 @@ internal class DummyAction(BotOwner botOwner) : CustomLogic(botOwner)
 public class PhobosLayer : CustomLayer
 {
     private const string LayerName = "PhobosLayer";
+    private const int ActivationDelay = 5; 
+
+    private int _activationFrame;
 
     private readonly PhobosManager _phobosManager;
     private readonly Agent _agent;
     private readonly Squad _squad; 
-    // private readonly Squad _squad;
     
     public PhobosLayer(BotOwner botOwner, int priority) : base(botOwner, priority)
     {
@@ -53,13 +55,22 @@ public class PhobosLayer : CustomLayer
     private void OnDead(Player player, IPlayer lastAggressor, DamageInfoStruct damageInfo, EBodyPart part)
     {
         player.OnPlayerDead -= OnDead;
-        _agent.IsLayerActive = false;
+        _agent.IsActive = false;
         _phobosManager.RemoveAgent(_agent);
     }
 
     private void OnLayerChanged(AICoreLayerClass<BotLogicDecision> layer)
     {
-        _agent.IsLayerActive = layer.Name() == LayerName;
+        if (layer.Name() == LayerName)
+        {
+            _activationFrame = Time.frameCount;
+        }
+        else if (_agent.IsActive)
+        {
+            DebugLog.Write($"Deactivating {_agent}");
+            _agent.IsActive = false;
+        }
+        
         DebugLog.Write($"{_agent} layer changed to: {layer.Name()} priority: {layer.Priority}");
     }
     
@@ -75,28 +86,22 @@ public class PhobosLayer : CustomLayer
 
     public override bool IsActive()
     {
-        var isHealing = false;
-        
-        if (BotOwner.Medecine != null)
-        {
-            isHealing = BotOwner.Medecine.Using;
-        
-            if (BotOwner.Medecine.FirstAid != null)
-                isHealing |= BotOwner.Medecine.FirstAid.Have2Do;
-            if (BotOwner.Medecine.SurgicalKit.HaveWork)
-                isHealing |= BotOwner.Medecine.SurgicalKit.HaveWork;
-        }
-
-        var isInCombat = BotOwner.Memory.IsUnderFire || (BotOwner.Memory.HaveEnemy && Time.time - BotOwner.Memory.LastEnemyTimeSeen < 20f);
-        
-        if (isHealing || isInCombat)
-            return false;
-        
-        return _agent.IsPhobosActive;
+        var isHealing = BotOwner.Medecine.Using || BotOwner.Medecine.SurgicalKit.HaveWork || BotOwner.Medecine.FirstAid.Have2Do;
+        return !isHealing;
     }
     
     public override bool IsCurrentActionEnding()
     {
+        // SAIN unfortunately messes up the bot move state. We need to delay activation by a couple of frames to allow the state to get updated
+        // properly by the BSG code, otherwise bots will be teleported to the last BSG managed position.
+        
+        // ReSharper disable once InvertIf
+        if (!_agent.IsActive && Time.frameCount - _activationFrame > ActivationDelay)
+        {
+            DebugLog.Write($"Activating {_agent}");
+            _agent.IsActive = true;
+        }
+        
         return false;
     }
 

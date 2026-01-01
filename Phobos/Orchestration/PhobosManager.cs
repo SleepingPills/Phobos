@@ -62,11 +62,10 @@ public class PhobosManager
 
         SquadRegistry = new SquadRegistry(SquadData, StrategyManager);
     }
-
+    
     public Agent AddAgent(BotOwner bot)
     {
         var agent = AgentData.AddEntity(bot, ActionManager.Tasks.Length);
-        MovementSystem.Reset(agent);
         SquadRegistry.AddAgent(agent);
         return agent;
     }

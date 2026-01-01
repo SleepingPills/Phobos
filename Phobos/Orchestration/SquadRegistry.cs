@@ -48,6 +48,7 @@ public class SquadRegistry(SquadData squadData, StrategyManager strategyManager)
         if (squad.Size > 0) return;
 
         DebugLog.Write($"Removing empty {squad}");
+        _squadIdMap.Remove(agent.Bot.BotsGroup.Id);
         squadData.Entities.Remove(squad);
         strategyManager.RemoveEntity(squad);
     }

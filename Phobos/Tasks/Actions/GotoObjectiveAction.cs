@@ -12,8 +12,7 @@ public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Age
     private const float UtilityBase = 0.5f;
     private const float UtilityBoost = 0.15f;
     private const float UtilityBoostMaxDistSqr = 50f * 50f;
-    private const float UtilityBoostMinDistSqr = 5f * 5f;
-    private const float ObjectiveEpsDistSqr = UtilityBoostMinDistSqr;
+    private const float ObjectiveEpsDistSqr = 10f * 10f;
 
     private readonly ComponentArray<Objective> _objectiveComponents = dataset.GetComponentArray<Objective>();
 
@@ -35,8 +34,8 @@ public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Age
             // utility falls off sharply.
             var distSqr = (objective.Location.Position - agent.Bot.Position).sqrMagnitude;
 
-            var utilityBoostFactor = Mathf.InverseLerp(UtilityBoostMaxDistSqr, UtilityBoostMinDistSqr, distSqr);
-            var utilityDecay = Mathf.InverseLerp(0f, UtilityBoostMinDistSqr, distSqr);
+            var utilityBoostFactor = Mathf.InverseLerp(UtilityBoostMaxDistSqr, ObjectiveEpsDistSqr, distSqr);
+            var utilityDecay = Mathf.InverseLerp(0f, ObjectiveEpsDistSqr, distSqr);
 
             agent.TaskScores[ordinal] = utilityDecay * (UtilityBase + utilityBoostFactor * UtilityBoost);
         }
@@ -62,7 +61,8 @@ public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Age
                 return;
             }
             
-            if (agent.Movement.Target is { Failed: true })
+            // The movement might fail to reach all the way to the target point, but we may be within the objective zone already.
+            if (agent.Movement.Target is { Failed: true } && (objective.Location.Position - agent.Bot.Position).sqrMagnitude > ObjectiveEpsDistSqr)
             {
                 objective.Status = ObjectiveStatus.Failed;
             }

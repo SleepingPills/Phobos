@@ -1,6 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
 using EFT;
-using Phobos.Navigation;
 using UnityEngine;
 
 namespace Phobos.Components;
@@ -19,7 +18,6 @@ public readonly struct MovementTarget(Vector3 position)
 public class Movement(BotOwner bot)
 {
     public MovementTarget? Target;
-    public NavJob CurrentJob;
 
     public float Speed = 1f;
     public float Pose = 1f;
@@ -36,6 +34,13 @@ public class Movement(BotOwner bot)
 
     public override string ToString()
     {
-        return $"Movement({Target} Try: {Retry} Path: {ActualPath?.CurIndex}/{ActualPath?.Length})";
+        var dist = 0f;
+
+        if (Target.HasValue)
+        {
+            dist = (Target.Value.Position - bot.Position).magnitude;
+        }
+        
+        return $"Movement({Target} Try: {Retry} Path: {ActualPath?.CurIndex}/{ActualPath?.Length} Dist: {dist})";
     }
 }
