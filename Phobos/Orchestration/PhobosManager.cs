@@ -48,7 +48,7 @@ public class PhobosManager
 
     private readonly List<Agent> _liveAgents;
 
-    public PhobosManager()
+    public PhobosManager(BotsController botsController)
     {
         AgentData = new AgentData();
         SquadData = new SquadData();
@@ -59,7 +59,7 @@ public class PhobosManager
         
         MovementSystem = new MovementSystem(NavJobExecutor);
         LookSystem = new LookSystem();
-        LocationSystem = new LocationSystem();
+        LocationSystem = new LocationSystem(botsController);
         
         RegisterComponents();
         var actions = RegisterActions();

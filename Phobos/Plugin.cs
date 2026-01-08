@@ -20,7 +20,8 @@ public class Plugin : BaseUnityPlugin
 
     public static ManualLogSource Log;
 
-    private static ConfigEntry<int> MaxScavSquadSize;
+    public static ConfigEntry<float> RaidConvergence;
+    public static ConfigEntry<float> RaidConvergenceRandomness;
     private static ConfigEntry<bool> _loggingEnabled;
     
     private void Awake()
@@ -88,9 +89,15 @@ public class Plugin : BaseUnityPlugin
         /*
          * General
          */
-        MaxScavSquadSize = Config.Bind(general, "Max Scav Squad Size", 3, new ConfigDescription(
-            "Does what it says on the tin.",
-            new AcceptableValueRange<int>(1, 10),
+        RaidConvergence = Config.Bind(general, "Raid Convergence", 0f, new ConfigDescription(
+            "",
+            new AcceptableValueRange<float>(-10f, 10f),
+            new ConfigurationManagerAttributes { Order = 2 }
+        ));
+        
+        RaidConvergenceRandomness = Config.Bind(general, "Raid Convergence Randomness", 1f, new ConfigDescription(
+            "",
+            new AcceptableValueRange<float>(0f, 1f),
             new ConfigurationManagerAttributes { Order = 1 }
         ));
 

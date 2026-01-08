@@ -13,11 +13,13 @@ public class PhobosInitPatch : ModulePatch
 {
     protected override MethodBase GetTargetMethod()
     {
-        return typeof(BotsController).GetConstructor(Type.EmptyTypes);
+        // return typeof(BotsController).GetConstructor(Type.EmptyTypes);
+        return typeof(BotsController).GetMethod(nameof(BotsController.Init));
     }
 
+    // ReSharper disable once InconsistentNaming
     [PatchPostfix]
-    public static void Postfix()
+    public static void Postfix(BotsController __instance)
     {
         // For some odd reason the constructor appears to be called twice. Prevent running the second time.
         if (Singleton<PhobosManager>.Instantiated)
@@ -26,7 +28,7 @@ public class PhobosInitPatch : ModulePatch
         DebugLog.Write("Initializing Phobos");
 
         // Core
-        var phobosManager = new PhobosManager();
+        var phobosManager = new PhobosManager(__instance);
 
         // Telemetry
         var telemetry = new Telemetry(phobosManager);

@@ -29,7 +29,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
         
             if (squad.Objective.Location == null)
             {
-                // Pick a random bot to source a position on the map
+                // For now we just pick a random squad member as the origin.
                 var agent = squad.Members[Random.Range(0, squad.Members.Count)];
                 
                 var newLocation = locationSystem.RequestNear(agent.Bot.Position, squad.Objective.LocationPrevious);
