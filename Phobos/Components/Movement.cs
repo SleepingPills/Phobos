@@ -19,8 +19,6 @@ public class Movement
     public bool Sprint = false;
     public bool Prone = false;
 
-    public NavGraphVoxelSimple DoorVoxel;
-
     public bool IsValid
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

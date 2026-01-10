@@ -66,8 +66,9 @@ public class Plugin : BaseUnityPlugin
         new PhobosFrameUpdatePatch().Enable();
         
         new MovementContextIsAIPatch().Enable();
-        new TestBotMoverManualFixedUpdatePatch().Enable();
-        // new TestBotMoverManualUpdatePatch().Enable();
+        new BotMoverManualFixedUpdatePatch().Enable();
+        new EnableVaultPatch().Enable();
+        // new BotMoverManualUpdatePatch().Enable();
         
         // Misc setup
         var brains = new List<string>()

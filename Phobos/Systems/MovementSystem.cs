@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using EFT;
 using EFT.Interactive;
 using Phobos.Components;
 using Phobos.Diag;
@@ -12,13 +13,16 @@ using UnityEngine.AI;
 
 namespace Phobos.Systems;
 
-public class MovementSystem(NavJobExecutor navJobExecutor)
+public class MovementSystem(NavJobExecutor navJobExecutor, List<Player> humanPlayers)
 {
     private const int RetryLimit = 10;
     private const float CornerReachedWalkDistSqr = 0.35f * 0.35f;
     private const float CornerReachedSprintDistSqr = 0.6f * 0.6f;
     private const float TargetReachedDistSqr = 1f;
-    
+
+    private static readonly LayerMask LayerMaskVisCheck = 0b0000_00000_0000_0001_1000_0000_0000;
+    private static readonly EBodyPartColliderType[] VisCheckBodyParts = [];
+
     private readonly Queue<ValueTuple<Agent, NavJob>> _moveJobs = new(20);
 
     public void Update(List<Agent> liveAgents)
@@ -168,6 +172,9 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
                 bot.BotLay.GetUp(true);
             }
         }
+        
+        // Run stuck detection before movement logic
+        UpdateStuckDetection(agent);
 
         // Path handling
         var moveVector = movement.Path[movement.CurrentCorner] - bot.Position;
@@ -233,12 +240,12 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
 
         // A spring to pull the bot back to the path if it veers off
         var pathDeviationSpring = closestPointOnPath - bot.Position;
-        
+
         // Steering
         moveVector.Normalize();
         moveVector += pathDeviationSpring;
         moveVector.Normalize();
-        
+
         var moveDir = CalcMoveDirection(moveVector, player.Rotation);
         player.CharacterController.SetSteerDirection(moveVector);
         player.Move(moveDir);
@@ -250,6 +257,151 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
     {
         var vector = Quaternion.Euler(0f, 0f, rotation.x) * new Vector2(direction.x, direction.z);
         return new Vector2(vector.x, vector.y);
+    }
+
+    private void UpdateStuckDetection(Agent agent)
+    {
+        var movement = agent.Movement;
+        var moveSpeed = agent.Player.MovementContext.CharacterMovementSpeed;
+
+        // Don't bother if we are basically stationary
+        if (moveSpeed <= 0.01)
+        {
+            return;
+        }
+
+        var stuck = agent.Stuck;
+        var currentPos = agent.Bot.Position;
+
+        // Calculate expected movement distance based on current speed setting
+        var expectedSpeed = Stuck.MaxMoveSpeed * moveSpeed;
+        var expectedDistance = expectedSpeed * Time.deltaTime;
+        var stuckThreshold = expectedDistance * Stuck.StuckThresholdMultiplier;
+
+        // Check if bot has moved significantly
+        var distanceMoved = (currentPos - stuck.LastPosition).magnitude;
+
+        if (distanceMoved > stuckThreshold)
+        {
+            // Bot is moving adequately - reset stuck detection
+            if (stuck.State != StuckState.None)
+            {
+                ResetStuck(stuck);
+            }
+
+            stuck.LastPosition = currentPos;
+            return;
+        }
+
+        // Bot appears stuck - increment timer
+        stuck.Timer += Time.deltaTime;
+
+        switch (stuck.State)
+        {
+            // Apply remediation based on stuck duration
+            case StuckState.None when stuck.Timer >= Stuck.VaultAttemptDelay:
+                DebugLog.Write($"{agent} is stuck, attempting to vault.");
+                stuck.State = StuckState.Vaulting;
+                agent.Player.MovementContext?.TryVaulting();
+                break;
+            case StuckState.Vaulting when stuck.Timer >= Stuck.JumpAttemptDelay:
+                DebugLog.Write($"{agent} is stuck, attempting to jump.");
+                stuck.State = StuckState.Jumping;
+                agent.Player.MovementContext?.TryJump();
+                break;
+            case StuckState.Jumping when stuck.Timer >= Stuck.PathRetryDelay:
+            {
+                DebugLog.Write($"{agent} is stuck, attempting recalculate path.");
+
+                ResetPath(movement);
+
+                if (movement.Retry >= RetryLimit)
+                {
+                    movement.Status = NavMeshPathStatus.PathInvalid;
+                    return;
+                }
+
+                stuck.State = StuckState.Retrying;
+                MoveRetry(agent, movement.Target);
+                break;
+            }
+            case StuckState.Retrying when stuck.Timer >= Stuck.TeleportDelay:
+                DebugLog.Write($"{agent} is stuck, attempting to teleport.");
+                AttemptTeleport(agent);
+                break;
+            case StuckState.Teleport when stuck.Timer >= Stuck.GiveupDelay:
+                DebugLog.Write($"{agent} is stuck, giving up.");
+                ResetPath(movement);
+                movement.Status = NavMeshPathStatus.PathInvalid;
+                break;
+            default:
+                Debug.Log($"Unexpected bot stuck state: {stuck}");
+                break;
+        }
+    }
+
+    private void AttemptTeleport(Agent agent)
+    {
+        var canBeSeen = false;
+
+        for (var i = 0; i < humanPlayers.Count; i++)
+        {
+            var player = humanPlayers[i];
+
+            if (!player.HealthController.IsAlive)
+            {
+                continue;
+            }
+
+            // Don't allow teleports when a human player is closer than 10m
+            if ((player.Position - agent.Bot.Position).sqrMagnitude <= 100f)
+            {
+                DebugLog.Write($"{agent} teleport proximity check failed: {player.Profile.Nickname} too close");
+                canBeSeen = true;
+                break;
+            }
+            
+            var humanHeadPos = player.PlayerBones.Head.Original.position;
+            var agentBodyParts = agent.Player.PlayerBones.BodyPartColliders;
+
+            var bodyPartVisibility = false;
+            for (var j = 0; j < agentBodyParts.Length; j++)
+            {
+                var bodyPart = agentBodyParts[j];
+                
+                DebugLog.Write($"{agent} teleport checking body part {bodyPart.BodyPartType} {bodyPart.BodyPartColliderType}");
+
+                // If we don't hit anything solid on the way to the destination, we assume it's visible
+                if (!Physics.Linecast(humanHeadPos, bodyPart.transform.position, out _, LayerMaskVisCheck)) continue;
+                
+                DebugLog.Write(
+                    $"{agent} teleport vis check failed: player {player.Profile.Nickname} can see body part {bodyPart.BodyPartColliderType}"
+                );
+
+                bodyPartVisibility = true;
+                // break;
+            }
+
+            if (!bodyPartVisibility) continue;
+            
+            canBeSeen = true;
+            break;
+        }
+
+        if (canBeSeen)
+            return;
+
+        var teleportPos = agent.Movement.Path[agent.Movement.CurrentCorner];
+        teleportPos.y += 0.25f;
+        agent.Player.Teleport(teleportPos);
+        DebugLog.Write($"{agent} teleporting to {teleportPos}");
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ResetStuck(Stuck stuckDetection)
+    {
+        stuckDetection.Timer = 0f;
+        stuckDetection.State = StuckState.None;
     }
 
     private static bool HandleDoors(Agent agent)

@@ -1,9 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using Comfort.Common;
 using EFT;
-using Phobos.Components;
-using Phobos.Components.Squad;
 using Phobos.Data;
 using Phobos.Entities;
 using Phobos.Navigation;
@@ -47,10 +46,24 @@ public class PhobosManager
     public readonly ActionManager ActionManager;
     public readonly StrategyManager StrategyManager;
 
+    public readonly List<Player> HumanPlayers;
+
     private readonly List<Agent> _liveAgents;
 
     public PhobosManager(BotsController botsController)
     {
+        HumanPlayers = [];
+        
+        var allPlayers = Singleton<GameWorld>.Instance.AllAlivePlayersList;
+        
+        foreach (var player in allPlayers)
+        {
+            if (player != null && !player.AIData.IsAI)
+            {
+                HumanPlayers.Add(player);
+            }
+        }
+        
         AgentData = new AgentData();
         SquadData = new SquadData();
 
@@ -58,7 +71,7 @@ public class PhobosManager
 
         NavJobExecutor = new NavJobExecutor();
         
-        MovementSystem = new MovementSystem(NavJobExecutor);
+        MovementSystem = new MovementSystem(NavJobExecutor, HumanPlayers);
         LookSystem = new LookSystem();
         LocationSystem = new LocationSystem(botsController);
         DoorSystem = new  DoorSystem();
