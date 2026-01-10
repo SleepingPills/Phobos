@@ -5,6 +5,8 @@ namespace Phobos.Helpers;
 
 public class TimePacing(float interval)
 {
+    public readonly float Interval = interval;
+    
     private float _triggerTime;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -13,7 +15,7 @@ public class TimePacing(float interval)
         if (Time.time < _triggerTime)
             return true;
 
-        _triggerTime = Time.time + interval;
+        _triggerTime = Time.time + Interval;
         return false;
     }
 
@@ -23,7 +25,7 @@ public class TimePacing(float interval)
         if (Time.time < _triggerTime)
             return false;
 
-        _triggerTime = Time.time + interval;
+        _triggerTime = Time.time + Interval;
         return true;
     }
 }

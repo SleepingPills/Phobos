@@ -118,11 +118,16 @@ public class PhobosLayer : CustomLayer
 
     public override void BuildDebugText(StringBuilder sb)
     {
+        var pose = BotOwner.GetPlayer.MovementContext.PoseLevel;
+        var destSpeed = BotOwner.Mover?.DestMoveSpeed;
+        var actualSpeed = _agent.Player.MovementContext.CharacterMovementSpeed;
+        
         sb.AppendLine($"{_agent} Task: {_agent.TaskAssignment.Task}");
-        sb.AppendLine($"{_agent.Movement}");
+        sb.AppendLine(_agent.Movement.ToString());
+        sb.AppendLine(_agent.Stuck.ToString());
         sb.AppendLine("*** Generic ***");
         sb.AppendLine($"HasEnemy: {BotOwner.Memory.HaveEnemy} UnderFire: {BotOwner.Memory.IsUnderFire}");
-        sb.AppendLine($"Pose: {BotOwner.GetPlayer.MovementContext.PoseLevel} Speed: {BotOwner.Mover?.DestMoveSpeed}");
+        sb.AppendLine($"Pose: {pose} DestSpeed: {destSpeed} ActualSpeed: {actualSpeed}");
         sb.AppendLine("*** Squad ***");
         sb.AppendLine($"{_agent.Squad}, size: {_agent.Squad.Size}");
         sb.AppendLine("*** Actions ***");
