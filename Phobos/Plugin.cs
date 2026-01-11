@@ -8,6 +8,7 @@ using BepInEx.Logging;
 using Comfort.Common;
 using DrakiaXYZ.BigBrain.Brains;
 using EFT;
+using Phobos.Config;
 using Phobos.Diag;
 using Phobos.Enums;
 using Phobos.Orchestration;
@@ -25,8 +26,9 @@ public class Plugin : BaseUnityPlugin
 
     public static ManualLogSource Log;
 
-    public static ConfigEntry<float> HotspotRadius;
-    public static ConfigEntry<float> HotSpotRadiusDecay;
+    public static ConfigEntry<float> ZoneRadiusScale;
+    public static ConfigEntry<float> ZoneForceScale;
+    public static ConfigEntry<float> ZoneRadiusDecayScale;
     
     private static ConfigEntry<bool> _loggingEnabled;
     
@@ -86,35 +88,52 @@ public class Plugin : BaseUnityPlugin
 
         // This layer makes scavs stand still doing bugger all, remove it
         BrainManager.RemoveLayer("AssaultEnemyFar", brains);
+        
+        // Ensure that the configuration files are created
+        // ReSharper disable once ObjectCreationAsStatement
+        new PhobosConfig();
     }
     
     private void SetupConfig()
     {
         const string general = "01. General";
-        const string debug = "02. Debug";
+        const string debug = "02. Diagnostics";
 
         /*
          * General
          */
-        HotspotRadius = Config.Bind(general, "Hotspot Radius", 200f, new ConfigDescription(
-            "",
-            new AcceptableValueRange<float>(0f, 1000f),
-            new ConfigurationManagerAttributes { Order = 4 }
-        ));
-        HotspotRadius.SettingChanged += HotspotParametersChanged;
-        
-        HotSpotRadiusDecay = Config.Bind(general, "Hotspot Decay", 1f, new ConfigDescription(
-            "",
-            new AcceptableValueRange<float>(0f, 4f),
+        ZoneRadiusScale = Config.Bind(general, "Zone Radius Scale", 1f, new ConfigDescription(
+            "Scales the radius of the zones on the map.",
+            new AcceptableValueRange<float>(0f, 10f),
             new ConfigurationManagerAttributes { Order = 3 }
         ));
-        HotSpotRadiusDecay.SettingChanged += HotspotParametersChanged;
+        ZoneRadiusScale.SettingChanged += ZoneParametersChanged;
+        
+        ZoneForceScale = Config.Bind(general, "Zone Force Scale", 1f, new ConfigDescription(
+            "Scales the forces exerted by the zones on the map. Negative scaling flips the sign, turning attractors into repulsors and vice versa.",
+            new AcceptableValueRange<float>(-10f, 10f),
+            new ConfigurationManagerAttributes { Order = 2 }
+        ));
+        ZoneForceScale.SettingChanged += ZoneParametersChanged;
+        
+        ZoneRadiusDecayScale = Config.Bind(general, "Zone Force Decay Scale", 1f, new ConfigDescription(
+            "Scales the zone force decay exponent.",
+            new AcceptableValueRange<float>(0f, 5f),
+            new ConfigurationManagerAttributes { Order = 1 }
+        ));
+        ZoneRadiusDecayScale.SettingChanged += ZoneParametersChanged;
         
         /*
          * Deboog
          */
-        Config.Bind(debug, "Location System Telemetry", "", new ConfigDescription(
-            "Displays information about the location system state",
+        Config.Bind(debug, "Camera Coords", "", new ConfigDescription(
+            "Displays the camera coordinates to aid positioning.",
+            null,
+            new ConfigurationManagerAttributes { Order = 3, CustomDrawer = CameraCoordsToggle }
+        ));
+        
+        Config.Bind(debug, "Location System", "", new ConfigDescription(
+            "Displays information about the location system state.",
             null,
             new ConfigurationManagerAttributes { Order = 2, CustomDrawer = LocationSystemTelemetryToggle }
         ));
@@ -126,12 +145,12 @@ public class Plugin : BaseUnityPlugin
         ));
     }
 
-    private static void HotspotParametersChanged(object sender, EventArgs args)
+    private static void ZoneParametersChanged(object sender, EventArgs args)
     {
-        Singleton<PhobosManager>.Instance?.LocationSystem.CalculateAdvectionField();
+        Singleton<PhobosManager>.Instance?.LocationSystem.CalculateZones();
     }
     
-    private static void LocationSystemTelemetryToggle(ConfigEntryBase entry)
+    private static void CameraCoordsToggle(ConfigEntryBase entry)
     {
         if (GUILayout.Button("Show"))
         {
@@ -140,9 +159,10 @@ public class Plugin : BaseUnityPlugin
             if (gameWorld == null)
                 return;
             
-            gameWorld.GetOrAddComponent<LocationSystemTelemetry>();
+            gameWorld.GetOrAddComponent<CameraTelemetry>();
         }
 
+        // ReSharper disable once InvertIf
         if (GUILayout.Button("Hide"))
         {
             var gameWorld = Singleton<GameWorld>.Instance;
@@ -150,12 +170,46 @@ public class Plugin : BaseUnityPlugin
             if (gameWorld == null)
                 return;
             
-            var component =  gameWorld.GetComponent<LocationSystemTelemetry>();
+            var component =  gameWorld.GetComponent<CameraTelemetry>();
             
             if (component == null)
                 return;
             
             Destroy(component);
+        }
+    }
+
+    
+    private static void LocationSystemTelemetryToggle(ConfigEntryBase entry)
+    {
+        if (GUILayout.Button("Show Map"))
+        {
+            var gameWorld = Singleton<GameWorld>.Instance;
+        
+            if (gameWorld == null)
+                return;
+            
+            gameWorld.GetOrAddComponent<ZoneTelemetry>();
+        }
+
+        if (GUILayout.Button("Hide Map"))
+        {
+            var gameWorld = Singleton<GameWorld>.Instance;
+        
+            if (gameWorld == null)
+                return;
+            
+            var component =  gameWorld.GetComponent<ZoneTelemetry>();
+            
+            if (component == null)
+                return;
+            
+            Destroy(component);
+        }
+        
+        if (GUILayout.Button("Reload Zones"))
+        {
+            Singleton<PhobosManager>.Instance?.LocationSystem.CalculateZones();
         }
     }
 }

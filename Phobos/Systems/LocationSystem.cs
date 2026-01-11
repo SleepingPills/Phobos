@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using EFT;
 using EFT.Interactive;
+using Phobos.Config;
 using Phobos.Diag;
 using Phobos.Navigation;
 using UnityEngine;
@@ -29,18 +29,6 @@ public struct Cell(int id)
 
 public class LocationSystem
 {
-    private const int MinCells = 3;
-    private const float MaxCellSize = 50f;
-
-    private static readonly HashSet<string> HotSpotNames =
-    [
-        "ZoneSubStorage", "ZoneBarrack", // rezervbase
-        "ZoneSanatorium1", "ZoneSanatorium2", // shoreline
-        "Zone_LongRoad", "Zone_Chalet", "Zone_Village", // lighthouse
-        "ZoneCenter", "ZoneCenterBot", // interchange
-        "ZoneDormitory", "ZoneScavBase", "ZoneOldAZS", "ZoneGasStation" // customs
-    ];
-
     private readonly Cell[,] _cells;
     private readonly float _cellSize;
     private readonly Vector2Int _gridSize;
@@ -48,12 +36,13 @@ public class LocationSystem
     private readonly Vector2 _worldMin;
     private readonly Vector2 _worldMax;
 
-    private readonly Vector2[,] _advectionField;
-
     private readonly SortedSet<Vector2Int> _coordsByCongestion;
     private readonly List<Vector2Int> _tempCoordsBuffer = [];
 
-    private readonly Vector2Int[] _hotSpots;
+    private readonly BotsController _botsController;
+    private readonly ConfigBundle<LocationConfig.MapZone> _zoneConfig;
+    private readonly List<Zone> _zones;
+    private readonly Vector2[,] _advectionField;
 
     private static int _idCounter;
 
@@ -62,43 +51,26 @@ public class LocationSystem
     public Vector2 WorldMin => _worldMin;
     public Vector2 WorldMax => _worldMax;
     public Vector2[,] AdvectionField => _advectionField;
+    public List<Zone> Zones => _zones;
 
-    public LocationSystem(BotsController botsController)
+    public LocationSystem(string mapId, PhobosConfig phobosConfig, BotsController botsController)
     {
-        var locations = CollectLocations();
-        Shuffle(locations);
+        _zoneConfig = phobosConfig.Location.MapZones[mapId];
+        _botsController = botsController;
 
+        var geometryConfig = phobosConfig.Location.MapGeometries.Value[mapId];
+        
         // Calculate bounds from positions
-        _worldMin = new Vector2(float.MaxValue, float.MaxValue);
-        _worldMax = new Vector2(float.MinValue, float.MinValue);
-
-        for (var i = 0; i < locations.Count; i++)
-        {
-            var pos = locations[i].Position;
-
-            _worldMin.x = Mathf.Min(_worldMin.x, pos.x);
-            _worldMin.y = Mathf.Min(_worldMin.y, pos.z);
-            _worldMax.x = Mathf.Max(_worldMax.x, pos.x);
-            _worldMax.y = Mathf.Max(_worldMax.y, pos.z);
-        }
-
-        // Add padding to bounds
-        _worldMin.x -= 10f;
-        _worldMin.y -= 10f;
-        _worldMax.x += 10f;
-        _worldMax.y += 10f;
-
+        _worldMin = geometryConfig.Min;
+        _worldMax = geometryConfig.Max;
+        
         _worldOffset = new Vector2(_worldMin.x, _worldMin.y);
 
         var worldWidth = _worldMax.x - _worldMin.x;
         var worldHeight = _worldMax.y - _worldMin.y;
 
-        // Calculate cell size that gives us at least minCells cells
-        var cellSizeFromWidth = worldWidth / MinCells;
-        var cellSizeFromHeight = worldHeight / MinCells;
-
         // Take the minimum of the three constraints
-        _cellSize = Mathf.Min(MaxCellSize, Mathf.Max(cellSizeFromWidth, cellSizeFromHeight));
+        _cellSize = geometryConfig.CellSize;
 
         // Calculate resulting grid dimensions
         var cols = Mathf.CeilToInt(worldWidth / _cellSize);
@@ -108,10 +80,6 @@ public class LocationSystem
         _cells = new Cell[cols, rows];
 
         var searchRadius = Math.Max(worldWidth, worldHeight) / 2f;
-
-        DebugLog.Write($"Location grid cell size: {_gridSize}, radius: {_cellSize:F1}, locations: {locations.Count}");
-        DebugLog.Write($"Location grid world bounds: [{_worldMin.x:F0},{_worldMin.y:F0}] -> [{_worldMax.x:F0},{_worldMax.y:F0}]");
-        DebugLog.Write($"Location grid world size: {worldWidth:F0}x{worldHeight:F0} search radius: {searchRadius}");
 
         // Cell initialization. We want to randomize the ids assigned to cells, so that their id based ordering is random.
         // The ids will be later used by the sorted set to tie-break, and we don't want deterministic ordering.
@@ -135,6 +103,9 @@ public class LocationSystem
         _tempCoordsBuffer.Clear();
 
         // Add the BSG locations
+        var locations = CollectLocations();
+        Shuffle(locations);
+        
         for (var i = 0; i < locations.Count; i++)
         {
             var location = locations[i];
@@ -200,26 +171,68 @@ public class LocationSystem
             }
         }
 
-        // Hotspot
-        var botZones = botsController.BotSpawner.AllBotZones;
-        _hotSpots = (from zone in botZones where HotSpotNames.Contains(zone.NameZone) select WorldToCell(zone.CenterOfSpawnPoints)).ToArray();
-        if (_hotSpots.Length == 0)
-        {
-            // Pick the center cell
-            var hotSpot = new Vector2Int(_gridSize.x / 2, _gridSize.y / 2);
-            _hotSpots = [hotSpot];
-            DebugLog.Write($"No hotspots found on map, picking central hotspot at cell {hotSpot}");
-        }
-
-        DebugLog.Write($"Collected {_hotSpots.Length} hotspots");
-
-        // Advection
+        // Zones
+        _zones = [];
         _advectionField = new Vector2[_gridSize.x, _gridSize.y];
-        CalculateAdvectionField();
+        CalculateZones();
+        
+        DebugLog.Write($"Location grid size: {_gridSize}, cell size: {_cellSize:F1}, locations: {locations.Count}");
+        DebugLog.Write($"Location grid world bounds: [{_worldMin.x:F0},{_worldMin.y:F0}] -> [{_worldMax.x:F0},{_worldMax.y:F0}]");
+        DebugLog.Write($"Location grid world size: {worldWidth:F0}x{worldHeight:F0} search radius: {searchRadius}");
     }
 
-    public void CalculateAdvectionField()
+    public void CalculateZones()
     {
+        _zoneConfig.Reload();
+        _zones.Clear();
+
+        for (var i = 0; i < _botsController.BotSpawner.AllBotZones.Length; i++)
+        {
+            var botZone = _botsController.BotSpawner.AllBotZones[i];
+
+            if (!_zoneConfig.Value.BuiltinZones.TryGetValue(botZone.name, out var builtinZone))
+                continue;
+
+            var minRadius = Mathf.Min(builtinZone.Radius.Min, builtinZone.Radius.Max);
+            
+            if (minRadius < 1)
+            {
+                throw new ArgumentException("The zone radius must be greater than or equal to 1");
+            }
+            
+            var zone = new Zone(
+                WorldToCell(botZone.CenterOfSpawnPoints),
+                builtinZone.Radius.SampleGaussian(),
+                builtinZone.Force.SampleGaussian(),
+                builtinZone.Decay
+            );
+            _zones.Add(zone);
+            DebugLog.Write($"Added builtin zone {botZone.NameZone}: {zone}");
+        }
+
+        for (var i = 0; i < _zoneConfig.Value.CustomZones.Count; i++)
+        {
+            var customZone = _zoneConfig.Value.CustomZones[i];
+            
+            var minRadius = Mathf.Min(customZone.Radius.Min, customZone.Radius.Max);
+            
+            if (minRadius < 1)
+            {
+                throw new ArgumentException("The zone radius must be greater than or equal to 1");
+            }
+            
+            var zone = new Zone(
+                WorldToCell(customZone.Position),
+                customZone.Radius.SampleGaussian(),
+                customZone.Force.SampleGaussian(),
+                customZone.Decay
+            );
+            _zones.Add(zone);
+            DebugLog.Write($"Added custom zone {zone}");
+        }
+
+        DebugLog.Write($"Collected {_zones.Count} zones");
+
         for (var x = 0; x < _gridSize.x; x++)
         {
             for (var y = 0; y < _gridSize.y; y++)
@@ -229,20 +242,19 @@ public class LocationSystem
                 _advectionField[x, y] = Vector2.zero;
 
                 // Add up all the hotspot contributions to this cell
-                for (var i = 0; i < _hotSpots.Length; i++)
+                for (var i = 0; i < _zones.Count; i++)
                 {
-                    var hotSpotCoords = _hotSpots[i];
+                    var zone = _zones[i];
                     // Get the world space distance between the hotspot and the current cell
-                    var worldDist = (CellToWorld(hotSpotCoords) - CellToWorld(cellCoords)).magnitude;
-                    // The metric is the cartesian distance to the hotspot normalized by the hotspot range and clamped 
-                    var metric = Mathf.Clamp01(1f - worldDist / Plugin.HotspotRadius.Value);
+                    var worldDist = (CellToWorld(zone.Coords) - CellToWorld(cellCoords)).magnitude;
+                    // The force is the cartesian distance to the hotspot normalized by the hotspot radius and clamped 
+                    var force = Mathf.Clamp01(1f - worldDist / (zone.Radius * Plugin.ZoneRadiusScale.Value));
                     // Apply a decay factor (1 is linear, <1 sublinear and >1 exponential).
-                    metric = Mathf.Pow(metric, Plugin.HotSpotRadiusDecay.Value);
+                    force = Mathf.Pow(force, zone.Decay * Plugin.ZoneRadiusDecayScale.Value);
+                    force *= zone.Force * Plugin.ZoneForceScale.Value;
                     // Accumulate the advection
-                    _advectionField[x, y] += metric * ((Vector2)(hotSpotCoords - cellCoords)).normalized;
+                    _advectionField[x, y] += force * ((Vector2)(zone.Coords - cellCoords)).normalized;
                 }
-
-                DebugLog.Write($"Cell {cellCoords} advection {_advectionField[x, y]} length {_advectionField[x, y].magnitude}");
             }
         }
     }
@@ -293,6 +305,9 @@ public class LocationSystem
 
         if (preferredDirection == Vector2.zero)
         {
+            DebugLog.Write(
+                "Preferred direction is a zero vector, trying locations in the current cell, and failing that the map-wide least congested cell"
+            );
             // We can't go to any neighboring cell for some reason, grab something from the current cell, and if that fails too, search map-wide. 
             var currentCell = _cells[requestCoords.x, requestCoords.y];
             return currentCell.HasLocations ? AssignLocation(requestCoords) : RequestFar();
@@ -339,6 +354,8 @@ public class LocationSystem
 
     private Location RequestFar()
     {
+        var pick = _coordsByCongestion.Min;
+        DebugLog.Write($"Requesting far cell {pick}");
         return AssignLocation(_coordsByCongestion.Min);
     }
 
@@ -429,6 +446,14 @@ public class LocationSystem
         return new Vector2Int(x, y);
     }
 
+    private Vector2Int WorldToCell(Vector2 worldPos)
+    {
+        var x = Mathf.FloorToInt((worldPos.x - _worldOffset.x) / _cellSize);
+        var y = Mathf.FloorToInt((worldPos.y - _worldOffset.y) / _cellSize);
+
+        return new Vector2Int(x, y);
+    }
+
     private static void Shuffle<T>(List<T> items)
     {
         // Fisher-Yates in-place shuffle
@@ -498,6 +523,19 @@ public class LocationSystem
 
             // Compare congestion and then tie-break by Id
             return cellA.Congestion != cellB.Congestion ? cellA.Congestion.CompareTo(cellB.Congestion) : cellA.Id.CompareTo(cellB.Id);
+        }
+    }
+
+    public readonly struct Zone(Vector2Int coords, float radius, float force, float decay)
+    {
+        public readonly Vector2Int Coords = coords;
+        public readonly float Radius = radius;
+        public readonly float Force = force;
+        public readonly float Decay = decay;
+
+        public override string ToString()
+        {
+            return $"Zone(position: {Coords}, radius: {Radius}, force: {Force}, decay: {Decay})";
         }
     }
 }

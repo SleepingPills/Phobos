@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Phobos.Diag;
 
-public class LocationSystemTelemetry : MonoBehaviour
+public class ZoneTelemetry : MonoBehaviour
 {
     // Colors for congestion levels
     private readonly Color _invalidCellColor = new(0.1f, 0.1f, 0.1f, 0.7f);
@@ -17,6 +17,7 @@ public class LocationSystemTelemetry : MonoBehaviour
     private readonly Color _highCongestionColor = new(0.8f, 0.2f, 0.2f, 0.7f);
     private readonly Color _agentColor = Color.cyan;
     private readonly Color _agentLeaderColor = Color.magenta;
+    private readonly Color _zoneColor = Color.blue;
     private readonly Color _gridLineColor = new(0.3f, 0.3f, 0.3f, 0.8f);
 
     private const int LowCongestionThreshold = 2;
@@ -24,6 +25,7 @@ public class LocationSystemTelemetry : MonoBehaviour
 
     private const float GridDisplaySize = 800f;
     private const float AgentDotRadius = 2f;
+    private const float ZoneDotRadius = 4f;
 
     public void OnGUI()
     {
@@ -36,13 +38,17 @@ public class LocationSystemTelemetry : MonoBehaviour
             phobos.AgentData.Entities.Values,
             phobos.LocationSystem.Cells,
             phobos.LocationSystem.AdvectionField,
+            phobos.LocationSystem.Zones,
             phobos.LocationSystem.GridSize,
             phobos.LocationSystem.WorldMin,
             phobos.LocationSystem.WorldMax
         );
     }
 
-    private void RenderGrid(List<Agent> agents, Cell[,] cells, Vector2[,] advectionField, Vector2Int gridSize, Vector2 worldMin, Vector2 worldMax)
+    private void RenderGrid(
+        List<Agent> agents, Cell[,] cells, Vector2[,] advectionField, List<LocationSystem.Zone> zones, Vector2Int gridSize, Vector2 worldMin,
+        Vector2 worldMax
+    )
     {
         if (cells == null || gridSize.x == 0 || gridSize.y == 0)
             return;
@@ -88,6 +94,17 @@ public class LocationSystemTelemetry : MonoBehaviour
             }
         }
 
+        for (var i = 0; i < zones.Count; i++)
+        {
+            var zone = zones[i];
+            var zoneScreenCoords = new Vector2(
+                gridRect.x + zone.Coords.x * cellSize + cellSize / 2,
+                gridRect.y + (gridSize.y - 1 - zone.Coords.y) * cellSize + cellSize / 2
+            );
+            
+            DrawDot(zoneScreenCoords, AgentDotRadius, _zoneColor);
+        }
+
         // Draw grid lines
         DrawGridLines(gridRect, gridSize, cellSize);
 
@@ -121,7 +138,7 @@ public class LocationSystemTelemetry : MonoBehaviour
 
             var color = agent.IsLeader ? _agentLeaderColor : _agentColor;
 
-            DrawCircle(new Vector2(screenX, screenY), AgentDotRadius, color);
+            DrawDot(new Vector2(screenX, screenY), AgentDotRadius, color);
         }
     }
 
@@ -220,7 +237,7 @@ public class LocationSystemTelemetry : MonoBehaviour
         DebugUI.DrawLine(start, end, thickness);
     }
 
-    private static void DrawCircle(Vector2 center, float radius, Color color)
+    private static void DrawDot(Vector2 center, float radius, Color color)
     {
         var oldColor = GUI.color;
         GUI.color = color;

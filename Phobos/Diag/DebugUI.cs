@@ -5,7 +5,7 @@ namespace Phobos.Diag;
 // ReSharper disable UnusedType.Global
 // ReSharper disable UnusedMember.Global
 // ReSharper disable MemberCanBePrivate.Global
-public class DebugUI
+public static class DebugUI
 {
     public static Rect Label(Vector2 position, string text, bool centered = true)
     {

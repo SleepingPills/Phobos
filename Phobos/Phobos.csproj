@@ -29,6 +29,9 @@
     <Reference Include="DrakiaXYZ-BigBrain">
       <HintPath>..\..\..\Client_Dev\BepInEx\plugins\DrakiaXYZ-BigBrain.dll</HintPath>
     </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\..\..\Client_Dev\EscapeFromTarkov_Data\Managed\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="Sirenix.Serialization">
       <HintPath>..\..\..\Client_Dev\EscapeFromTarkov_Data\Managed\Sirenix.Serialization.dll</HintPath>
     </Reference>

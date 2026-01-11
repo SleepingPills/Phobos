@@ -3,6 +3,7 @@ using System.Linq;
 using System.Runtime.CompilerServices;
 using Comfort.Common;
 using EFT;
+using Phobos.Config;
 using Phobos.Data;
 using Phobos.Entities;
 using Phobos.Navigation;
@@ -33,6 +34,9 @@ public class PhobosManager
         get;
     }
 
+    public readonly string MapId;
+    public readonly PhobosConfig Config;
+
     public readonly AgentData AgentData;
     public readonly SquadData SquadData;
 
@@ -52,9 +56,14 @@ public class PhobosManager
 
     public PhobosManager(BotsController botsController)
     {
-        HumanPlayers = [];
+        var gameWorld = Singleton<GameWorld>.Instance;
+
+        MapId = gameWorld.LocationId;
+        Config = new PhobosConfig();
         
-        var allPlayers = Singleton<GameWorld>.Instance.AllAlivePlayersList;
+        HumanPlayers = [];
+
+        var allPlayers = gameWorld.AllAlivePlayersList;
         
         foreach (var player in allPlayers)
         {
@@ -73,7 +82,7 @@ public class PhobosManager
         
         MovementSystem = new MovementSystem(NavJobExecutor, HumanPlayers);
         LookSystem = new LookSystem();
-        LocationSystem = new LocationSystem(botsController);
+        LocationSystem = new LocationSystem(MapId, Config, botsController);
         DoorSystem = new  DoorSystem();
         
         RegisterComponents();
