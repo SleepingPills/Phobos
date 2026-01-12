@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using Comfort.Common;
-using EFT;
 using Phobos.Entities;
 using Phobos.Orchestration;
 using Phobos.Systems;
@@ -11,16 +10,17 @@ namespace Phobos.Diag;
 public class ZoneTelemetry : MonoBehaviour
 {
     // Colors for congestion levels
-    private readonly Color _invalidCellColor = new(0.1f, 0.1f, 0.1f, 0.7f);
-    private readonly Color _emptyCellColor = new(0.35f, 0.35f, 0.35f, 0.7f);
+    private readonly Color _invalidCellColor = new(0.0f, 0.0f, 0.0f, 0.8f);
+    private readonly Color _emptyCellColor = new(0.15f, 0.15f, 0.15f, 0.8f);
     private readonly Color _lowCongestionColor = new(0.2f, 0.6f, 0.2f, 0.7f);
     private readonly Color _mediumCongestionColor = new(0.8f, 0.8f, 0.2f, 0.7f);
     private readonly Color _highCongestionColor = new(0.8f, 0.2f, 0.2f, 0.7f);
+    private readonly Color _cellCoordTextColor = new(0.4f, 0.4f, 0.4f, 1.0f);
     private readonly Color _agentColor = Color.cyan;
     private readonly Color _agentLeaderColor = Color.magenta;
     private readonly Color _cameraColor = Color.white;
     private readonly Color _zoneColor = Color.blue;
-    private readonly Color _gridLineColor = new(0.3f, 0.3f, 0.3f, 0.8f);
+    private readonly Color _gridLineColor = new(0.5f, 0.5f, 0.5f, 0.8f);
 
     private const int LowCongestionThreshold = 2;
     private const int MediumCongestionThreshold = 4;
@@ -85,6 +85,9 @@ public class ZoneTelemetry : MonoBehaviour
                 var color = cell.HasLocations ? GetCongestionColor(cell.Congestion) : _invalidCellColor;
                 DrawFilledRect(cellRect, color);
 
+                // Draw cell coordinates
+                DrawCellCoordinates(cellRect, x, y, cellSize);
+                
                 // Advection
                 // Have to flip the Y axis coordinate
                 var advectionVector = advectionField[x, y] * new Vector2(1f, -1f);
@@ -104,7 +107,7 @@ public class ZoneTelemetry : MonoBehaviour
                 gridRect.y + (gridSize.y - 1 - zone.Coords.y) * cellSize + cellSize / 2
             );
             
-            DrawDot(zoneScreenCoords, AgentDotRadius, _zoneColor);
+            DrawDot(zoneScreenCoords, ZoneDotRadius, _zoneColor);
         }
 
         // Draw grid lines
@@ -237,6 +240,31 @@ public class ZoneTelemetry : MonoBehaviour
     {
         DrawFilledRect(colorRect, color);
         GUI.Label(new Rect(colorRect.x + colorRect.width + 5, colorRect.y, 200, colorRect.height), label);
+    }
+    
+    private void DrawCellCoordinates(Rect cellRect, int x, int y, float cellSize)
+    {
+        // Only draw if cell is large enough to be readable
+        if (cellSize < 15f) return;
+
+        var oldColor = GUI.color;
+        GUI.color = _cellCoordTextColor;
+
+        var coordText = $"{x},{y}";
+        var textStyle = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = Mathf.Max(8, (int)(cellSize / 4f)),
+            alignment = TextAnchor.UpperLeft,
+            normal = { textColor = _cellCoordTextColor }
+        };
+
+        GUI.Label(
+            new Rect(cellRect.x + 1, cellRect.y + 1, cellRect.width, cellRect.height),
+            coordText,
+            textStyle
+        );
+
+        GUI.color = oldColor;
     }
 
     private static void DrawFilledRect(Rect rect, Color color)

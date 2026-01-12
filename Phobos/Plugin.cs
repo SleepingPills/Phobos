@@ -18,6 +18,7 @@ using UnityEngine;
 namespace Phobos;
 
 [BepInPlugin("com.janky.phobos", "Janky-Phobos", PhobosVersion)]
+[BepInDependency("xyz.drakia.waypoints")]
 [SuppressMessage("ReSharper", "HeapView.ObjectAllocation.Evident")]
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 public class Plugin : BaseUnityPlugin

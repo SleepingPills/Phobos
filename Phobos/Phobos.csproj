@@ -74,6 +74,9 @@
     <Reference Include="UnityEngine.TerrainModule">
       <HintPath>..\..\..\Client_Dev\EscapeFromTarkov_Data\Managed\UnityEngine.TerrainModule.dll</HintPath>
     </Reference>
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>..\..\..\Client_Dev\EscapeFromTarkov_Data\Managed\UnityEngine.TextRenderingModule.dll</HintPath>
+    </Reference>
     </ItemGroup>
 
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">

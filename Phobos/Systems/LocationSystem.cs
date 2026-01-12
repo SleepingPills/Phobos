@@ -31,6 +31,7 @@ public class LocationSystem
 {
     private readonly Cell[,] _cells;
     private readonly float _cellSize;
+    private readonly float _cellSubSize;
     private readonly Vector2Int _gridSize;
     private readonly Vector2 _worldOffset; // Bottom-left corner in world space
     private readonly Vector2 _worldMin;
@@ -59,11 +60,11 @@ public class LocationSystem
         _botsController = botsController;
 
         var geometryConfig = phobosConfig.Location.MapGeometries.Value[mapId];
-        
+
         // Calculate bounds from positions
         _worldMin = geometryConfig.Min;
         _worldMax = geometryConfig.Max;
-        
+
         _worldOffset = new Vector2(_worldMin.x, _worldMin.y);
 
         var worldWidth = _worldMax.x - _worldMin.x;
@@ -71,6 +72,7 @@ public class LocationSystem
 
         // Take the minimum of the three constraints
         _cellSize = geometryConfig.CellSize;
+        _cellSubSize = _cellSize / 2f;
 
         // Calculate resulting grid dimensions
         var cols = Mathf.CeilToInt(worldWidth / _cellSize);
@@ -102,19 +104,18 @@ public class LocationSystem
 
         _tempCoordsBuffer.Clear();
 
-        // Add the BSG locations
+        // Add the builtin locations
         var locations = CollectLocations();
         Shuffle(locations);
-        
+
         for (var i = 0; i < locations.Count; i++)
         {
             var location = locations[i];
             var coords = WorldToCell(location.Position);
-            DebugLog.Write($"Adding {location} to cell at [{coords.x}, {coords.y}]");
             _cells[coords.x, coords.y].Locations.Add(location);
         }
 
-        // Loop through all the cells and check if a path can be found from the cell center or BSG locations to a neighboring cell location.
+        // Loop through all the cells and try to populate them with synthetic locations if there aren't any builtin ones
         for (var x = 0; x < _gridSize.x; x++)
         {
             for (var y = 0; y < _gridSize.y; y++)
@@ -122,13 +123,13 @@ public class LocationSystem
                 var cellCoords = new Vector2Int(x, y);
                 ref var cell = ref _cells[cellCoords.x, cellCoords.y];
 
-                // If we already have BSG issued locations, bail out
+                // If we already have builting locations, bail out
                 if (cell.HasLocations)
                 {
                     continue;
                 }
 
-                DebugLog.Write($"Cell at [{x}, {y}] has no BSG locations, attempting to create a synthetic cell center");
+                DebugLog.Write($"Cell at [{x}, {y}] has no builtin locations, attempting to create a synthetic cell center");
 
                 // Try to find a navmesh position as close to the cell center as possible.
                 var worldPos = CellToWorld(cellCoords);
@@ -137,18 +138,11 @@ public class LocationSystem
                 {
                     if (WorldToCell(hit.position) == cellCoords)
                     {
-                        if (CheckPathing(cellCoords, hit.position))
-                        {
-                            DebugLog.Write($"Cell {cellCoords}: found center sample on navmesh at {worldPos} -> {hit.position}");
-                            cell.Locations.Add(BuildSyntheticLocation(hit.position));
-                            continue;
-                        }
-
-                        DebugLog.Write($"Cell {cellCoords}: non-traversable center sample");
+                        if (PopulateCell(cell, cellCoords, hit.position)) continue;
                     }
                 }
 
-                DebugLog.Write($"Cell {cellCoords}: no navmesh positions found");
+                DebugLog.Write($"Cell {cellCoords}: no reachable synthetic locations found");
             }
         }
 
@@ -175,85 +169,10 @@ public class LocationSystem
         _zones = [];
         _advectionField = new Vector2[_gridSize.x, _gridSize.y];
         CalculateZones();
-        
+
         DebugLog.Write($"Location grid size: {_gridSize}, cell size: {_cellSize:F1}, locations: {locations.Count}");
         DebugLog.Write($"Location grid world bounds: [{_worldMin.x:F0},{_worldMin.y:F0}] -> [{_worldMax.x:F0},{_worldMax.y:F0}]");
         DebugLog.Write($"Location grid world size: {worldWidth:F0}x{worldHeight:F0} search radius: {searchRadius}");
-    }
-
-    public void CalculateZones()
-    {
-        _zoneConfig.Reload();
-        _zones.Clear();
-
-        for (var i = 0; i < _botsController.BotSpawner.AllBotZones.Length; i++)
-        {
-            var botZone = _botsController.BotSpawner.AllBotZones[i];
-
-            if (!_zoneConfig.Value.BuiltinZones.TryGetValue(botZone.name, out var builtinZone))
-                continue;
-
-            var minRadius = Mathf.Min(builtinZone.Radius.Min, builtinZone.Radius.Max);
-            
-            if (minRadius < 1)
-            {
-                throw new ArgumentException("The zone radius must be greater than or equal to 1");
-            }
-            
-            var zone = new Zone(
-                WorldToCell(botZone.CenterOfSpawnPoints),
-                builtinZone.Radius.SampleGaussian(),
-                builtinZone.Force.SampleGaussian(),
-                builtinZone.Decay
-            );
-            _zones.Add(zone);
-        }
-
-        for (var i = 0; i < _zoneConfig.Value.CustomZones.Count; i++)
-        {
-            var customZone = _zoneConfig.Value.CustomZones[i];
-            
-            var minRadius = Mathf.Min(customZone.Radius.Min, customZone.Radius.Max);
-            
-            if (minRadius < 1)
-            {
-                throw new ArgumentException("The zone radius must be greater than or equal to 1");
-            }
-            
-            var zone = new Zone(
-                WorldToCell(customZone.Position),
-                customZone.Radius.SampleGaussian(),
-                customZone.Force.SampleGaussian(),
-                customZone.Decay
-            );
-            _zones.Add(zone);
-        }
-
-        for (var x = 0; x < _gridSize.x; x++)
-        {
-            for (var y = 0; y < _gridSize.y; y++)
-            {
-                var cellCoords = new Vector2(x, y);
-
-                _advectionField[x, y] = Vector2.zero;
-
-                // Add up all the hotspot contributions to this cell
-                for (var i = 0; i < _zones.Count; i++)
-                {
-                    var zone = _zones[i];
-                    var zoneCoords = (Vector2)zone.Coords;
-                    // Get the world space distance between the hotspot and the current cell
-                    var worldDist = Vector2.Distance(zoneCoords, cellCoords) * _cellSize;
-                    // The force is the cartesian distance to the hotspot normalized by the hotspot radius and clamped 
-                    var force = Mathf.Clamp01(1f - worldDist / (zone.Radius * Plugin.ZoneRadiusScale.Value));
-                    // Apply a decay factor (1 is linear, <1 sublinear and >1 exponential).
-                    force = Mathf.Pow(force, zone.Decay * Plugin.ZoneRadiusDecayScale.Value);
-                    force *= zone.Force * Plugin.ZoneForceScale.Value;
-                    // Accumulate the advection
-                    _advectionField[x, y] += force * (zoneCoords - cellCoords).normalized;
-                }
-            }
-        }
     }
 
     public Location RequestNear(Vector3 worldPos, Location previous)
@@ -294,23 +213,19 @@ public class LocationSystem
         var momentumVector = (Vector2)(requestCoords - previousCoords);
         momentumVector.Normalize();
 
-        var preferredDirection = vacancyVector + momentumVector + advectionVector + randomization;
+        var prefDirection = vacancyVector + momentumVector + advectionVector + randomization;
 
-        DebugLog.Write(
-            $"Preferred direction: {preferredDirection} vacancy: {vacancyVector} mom: {momentumVector} adv: {advectionVector} rand: {randomization}"
-        );
+        DebugLog.Write($"Direction: {prefDirection} vacancy: {vacancyVector} mom: {momentumVector} adv: {advectionVector} rand: {randomization}");
 
-        if (preferredDirection == Vector2.zero)
+        if (prefDirection == Vector2.zero)
         {
-            DebugLog.Write(
-                "Preferred direction is a zero vector, trying locations in the current cell, and failing that the map-wide least congested cell"
-            );
+            DebugLog.Write("Zero vector preferred direction, trying the current cell, and failing that the map-wide least congested cell");
             // We can't go to any neighboring cell for some reason, grab something from the current cell, and if that fails too, search map-wide. 
             var currentCell = _cells[requestCoords.x, requestCoords.y];
             return currentCell.HasLocations ? AssignLocation(requestCoords) : RequestFar();
         }
 
-        preferredDirection.Normalize();
+        prefDirection.Normalize();
 
         Vector2Int? bestNeighbor = null;
         var bestAngle = float.MaxValue;
@@ -319,9 +234,9 @@ public class LocationSystem
         for (var i = 0; i < _tempCoordsBuffer.Count; i++)
         {
             var candidateDirection = _tempCoordsBuffer[i];
-            var angle = Vector2.Angle(candidateDirection, preferredDirection);
+            var angle = Vector2.Angle(candidateDirection, prefDirection);
 
-            DebugLog.Write($"Direction {preferredDirection} -> {candidateDirection} angle: {angle}");
+            DebugLog.Write($"Direction {prefDirection} -> {candidateDirection} angle: {angle}");
 
             if (angle >= bestAngle) continue;
 
@@ -349,6 +264,81 @@ public class LocationSystem
         DebugLog.Write($"Returning {location} to the pool resulted in negative congestion");
     }
 
+    public void CalculateZones()
+    {
+        _zoneConfig.Reload();
+        _zones.Clear();
+
+        for (var i = 0; i < _botsController.BotSpawner.AllBotZones.Length; i++)
+        {
+            var botZone = _botsController.BotSpawner.AllBotZones[i];
+
+            if (!_zoneConfig.Value.BuiltinZones.TryGetValue(botZone.name, out var builtinZone))
+                continue;
+
+            var minRadius = Mathf.Min(builtinZone.Radius.Min, builtinZone.Radius.Max);
+
+            if (minRadius < 1)
+            {
+                throw new ArgumentException("The zone radius must be greater than or equal to 1");
+            }
+
+            var zone = new Zone(
+                WorldToCell(botZone.CenterOfSpawnPoints),
+                builtinZone.Radius.SampleGaussian(),
+                builtinZone.Force.SampleGaussian(),
+                builtinZone.Decay
+            );
+            _zones.Add(zone);
+        }
+
+        for (var i = 0; i < _zoneConfig.Value.CustomZones.Count; i++)
+        {
+            var customZone = _zoneConfig.Value.CustomZones[i];
+
+            var minRadius = Mathf.Min(customZone.Radius.Min, customZone.Radius.Max);
+
+            if (minRadius < 1)
+            {
+                throw new ArgumentException("The zone radius must be greater than or equal to 1");
+            }
+
+            var zone = new Zone(
+                WorldToCell(customZone.Position),
+                customZone.Radius.SampleGaussian(),
+                customZone.Force.SampleGaussian(),
+                customZone.Decay
+            );
+            _zones.Add(zone);
+        }
+
+        for (var x = 0; x < _gridSize.x; x++)
+        {
+            for (var y = 0; y < _gridSize.y; y++)
+            {
+                var cellCoords = new Vector2(x, y);
+
+                _advectionField[x, y] = Vector2.zero;
+
+                // Add up all the hotspot contributions to this cell
+                for (var i = 0; i < _zones.Count; i++)
+                {
+                    var zone = _zones[i];
+                    var zoneCoords = (Vector2)zone.Coords;
+                    // Get the world space distance between the hotspot and the current cell
+                    var worldDist = Vector2.Distance(zoneCoords, cellCoords) * _cellSize;
+                    // The force is the cartesian distance to the hotspot normalized by the hotspot radius and clamped 
+                    var force = Mathf.Clamp01(1f - worldDist / (zone.Radius * Plugin.ZoneRadiusScale.Value));
+                    // Apply a decay factor (1 is linear, <1 sublinear and >1 exponential).
+                    force = Mathf.Pow(force, zone.Decay * Plugin.ZoneRadiusDecayScale.Value);
+                    force *= zone.Force * Plugin.ZoneForceScale.Value;
+                    // Accumulate the advection
+                    _advectionField[x, y] += force * (zoneCoords - cellCoords).normalized;
+                }
+            }
+        }
+    }
+
     private Location RequestFar()
     {
         var pick = _coordsByCongestion.Min;
@@ -365,6 +355,44 @@ public class LocationSystem
         _coordsByCongestion.Add(coords);
 
         return cell.Locations[Random.Range(0, cell.Locations.Count)];
+    }
+
+    private bool PopulateCell(Cell cell, Vector2Int cellCoords, Vector3 centerPoint)
+    {
+        var pointsFound = 0;
+
+        const float resolution = 3;
+        var spacing = _cellSubSize / (resolution - 1);
+        var halfSize = _cellSubSize / 2f;
+
+        for (var z = 0; z < resolution; z++)
+        {
+            for (var x = 0; x < resolution; x++)
+            {
+                var xOffset = x * spacing - halfSize;
+                var zOffset = z * spacing - halfSize;
+
+                var candidatePoint = new Vector3(centerPoint.x + xOffset, centerPoint.y, centerPoint.z + zOffset);
+
+                if(!NavMesh.SamplePosition(candidatePoint, out var hit, _cellSubSize, NavMesh.AllAreas))
+                    continue;
+
+                if (WorldToCell(hit.position) != cellCoords)
+                    continue;
+
+                if (!CheckPathing(cellCoords, hit.position))
+                    continue;
+
+                DebugGizmos.Line(hit.position - 500f * Vector3.up, hit.position + 500f * Vector3.up, expiretime: 0f);
+                
+                cell.Locations.Add(BuildSyntheticLocation(hit.position));
+                pointsFound++;
+            }
+        }
+
+        DebugLog.Write($"Cell {cellCoords}: found a total of {pointsFound} synthetic points");
+
+        return pointsFound > 0;
     }
 
     private bool CheckPathing(Vector2Int center, Vector3 candidatePos)
@@ -395,7 +423,7 @@ public class LocationSystem
                 if (!NavMesh.CalculatePath(candidatePos, location.Position, NavMesh.AllAreas, tempPath)) continue;
 
                 // Only accept paths that actually arrive at the destination
-                if (tempPath.corners.Length > 0 && (tempPath.corners[^1] - location.Position).sqrMagnitude <= 1)
+                if (tempPath.corners.Length > 0 && (tempPath.corners[^1] - location.Position).sqrMagnitude <= 1f)
                     return true;
             }
 
