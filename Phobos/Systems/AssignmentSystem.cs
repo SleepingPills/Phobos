@@ -341,8 +341,11 @@ public class AssignmentSystem
         return cell.Locations[Random.Range(0, cell.Locations.Count)];
     }
 
-    private void PropagateForce(Vector2Int sourceCoords, float maxForce, int range = 3)
+    private void PropagateForce(Vector2Int sourceCoords, float forceMul, int range = 3)
     {
+        const float baseForce = 0.5f;
+        var maxForce = forceMul * baseForce;
+        
         for (var dx = -range; dx <= range; dx++)
         {
             for (var dy = -range; dy <= range; dy++)
@@ -357,10 +360,10 @@ public class AssignmentSystem
 
                 // Direction from source to target in cell coordinates
                 var direction = new Vector2(dx, dy);
-                var distanceSqr = direction.sqrMagnitude;
+                var distanceNorm = direction.magnitude;
 
                 // Normalize direction and apply inverse squared distance falloff
-                var force = direction.normalized * maxForce / distanceSqr;
+                var force = direction.normalized * maxForce / distanceNorm;
 
                 // Accumulate into advection field
                 _advectionField[targetCoords.x, targetCoords.y] += force;

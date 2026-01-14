@@ -47,11 +47,11 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
         {
             var agent = ActiveEntities[i];
             var objective = agent.Objective;
-
+            
             // ReSharper disable once ConvertIfStatementToSwitchStatement
             if (objective.Status == ObjectiveStatus.Failed)
             {
-                return;
+                continue;
             }
 
             if (objective.Status == ObjectiveStatus.Suspended)
@@ -59,11 +59,11 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
                 DebugLog.Write($"{agent} objective {agent.Objective.Location} is suspended, submitting move order");
                 objective.Status = ObjectiveStatus.Active;
                 movementSystem.MoveToByPath(agent, objective.Location.Position);
-                return;
+                continue;
             }
 
             // Only fail the objective if the movement fails outside the objective zone.  
-            if (agent.Movement.Status == NavMeshPathStatus.PathInvalid &&
+            if (agent.Movement.Status == MovementStatus.Failed &&
                 (objective.Location.Position - agent.Position).sqrMagnitude > ObjectiveEpsDistSqr)
             {
                 DebugLog.Write($"{agent} objective {agent.Objective.Location} is failed");
@@ -87,7 +87,7 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
         objective.Status = ObjectiveStatus.Active;
 
         // Check if we are already moving to our target
-        if (entity.Movement.IsValid)
+        if (entity.Movement.HasPath)
         {
             if ((entity.Movement.Target - objective.Location.Position).sqrMagnitude <= ObjectiveEpsDistSqr)
             {

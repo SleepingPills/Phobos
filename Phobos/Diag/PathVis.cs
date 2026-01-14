@@ -51,16 +51,16 @@ public class PathVis
         }
     }
 
-    public static void Show(Vector3[] data, float thickness = 0.05f)
+    public static void Show(Vector3[] data, float thickness = 0.05f, bool knobs = false)
     {
         var vis = new PathVis();
-        vis.Set(data, Color.red, Color.green, thickness, knobs: true);
+        vis.Set(data, Color.red, Color.green, thickness, knobs: knobs);
     }
 
-    public static void Show(Vector3[] data, Color color, float thickness = 0.05f)
+    public static void Show(Vector3[] data, Color color, float thickness = 0.05f, bool knobs = false)
     {
         var vis = new PathVis();
-        vis.Set(data, color, thickness, knobs: true);
+        vis.Set(data, color, thickness, knobs: knobs);
     }
 
     public void Clear()

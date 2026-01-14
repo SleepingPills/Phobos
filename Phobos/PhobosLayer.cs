@@ -53,9 +53,9 @@ public class PhobosLayer : CustomLayer
         // Door hack
         var botCollider = _agent.Bot.GetPlayer.CharacterController.GetCollider();
         var pomCollider = _agent.Bot.GetPlayer.POM.Collider;
-        
+
         var doors = _phobos.DoorSystem.Doors;
-        
+
         for (var i = 0; i < doors.Length; i++)
         {
             var door = doors[i];
@@ -123,19 +123,17 @@ public class PhobosLayer : CustomLayer
         var actualSpeed = _agent.Player.MovementContext.CharacterMovementSpeed;
 
         var distMove = 0f;
-
-        if (_agent.Movement.IsValid)
+        if (_agent.Movement.HasPath)
         {
             distMove = (_agent.Movement.Target - _agent.Position).sqrMagnitude;
         }
 
         var distObj = 0f;
-
         if (_agent.Objective.Location != null)
         {
             distObj = (_agent.Objective.Location.Position - _agent.Position).sqrMagnitude;
         }
-        
+
         sb.AppendLine($"{_agent} Task: {_agent.TaskAssignment.Task}");
         sb.AppendLine($"{_agent.Movement} dist {distMove}");
         sb.AppendLine(_agent.Stuck.ToString());

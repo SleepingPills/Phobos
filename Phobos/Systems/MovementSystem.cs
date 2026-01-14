@@ -61,7 +61,7 @@ public class MovementSystem
             // Bail out if the agent is inactive
             if (!agent.IsActive)
             {
-                if (agent.Movement.IsValid)
+                if (agent.Movement.HasPath)
                 {
                     ResetPath(agent);
                 }
@@ -95,7 +95,7 @@ public class MovementSystem
 
         if (agent.Movement.Retry >= RetryLimit)
         {
-            agent.Movement.Status = NavMeshPathStatus.PathInvalid;
+            agent.Movement.Status = MovementStatus.Failed;
             return;
         }
 
@@ -116,12 +116,12 @@ public class MovementSystem
         if (job.Status == NavMeshPathStatus.PathInvalid)
         {
             agent.Movement.Target = job.Target;
-            agent.Movement.Status = NavMeshPathStatus.PathInvalid;
+            agent.Movement.Status = MovementStatus.Failed;
             ResetPath(agent);
             return;
         }
 
-        AssignTarget(agent.Movement, job);
+        AssignPath(agent.Movement, job);
 
         agent.Bot.Mover.Stop();
 
@@ -136,8 +136,10 @@ public class MovementSystem
         var player = agent.Player;
         var movement = agent.Movement;
 
-        if (movement.Path == null || movement.Path.Length == 0 || movement.Status == NavMeshPathStatus.PathInvalid)
+        if (!movement.HasPath || movement.Status == MovementStatus.Failed || movement.Status == MovementStatus.Stopped)
             return;
+        
+        DebugGizmos.Line(agent.Position, movement.Target, color: Color.blue, expiretime: 0.15f);
 
         if (movement.VoxelUpdatePacing.Allowed())
         {
@@ -234,8 +236,6 @@ public class MovementSystem
             // If the path doesn't reach far enough, retry again. Don't rely on unity's path status value here.
             if ((movement.Target - movement.Path[movement.CurrentCorner]).sqrMagnitude > TargetReachedDistSqr)
             {
-                DebugLog.Write($"{agent} path appears partial, the last corner doesn't reach far enough. Retrying.");
-                movement.Status =  NavMeshPathStatus.PathPartial;
                 MoveRetry(agent, movement.Target);
                 return;
             }
@@ -260,23 +260,10 @@ public class MovementSystem
         // A spring to pull the bot back to the path if it veers off
         var pathDeviationSpring = (closestPointOnPath - agentPos2d).ToVector3();
 
-        // We can't move vertically, don't bother compensating for this
-        // pathDeviationSpring.y = 0;
-
-        DebugGizmos.Line(agent.Position, agent.Position + moveVector, color: Color.blue, expiretime: 0.15f);
-
         // Steering
         moveVector.Normalize();
-        DebugGizmos.Line(agent.Position, agent.Position + moveVector, color: Color.red, expiretime: 0.15f);
         moveVector += pathDeviationSpring;
         moveVector.Normalize();
-
-        DebugGizmos.Line(agent.Position, agent.Position + moveVector, color: Color.green, expiretime: 0.15f);
-
-        if (pathDeviationSpring.magnitude > 0.01f)
-        {
-            DebugGizmos.Line(agent.Position, agent.Position + pathDeviationSpring, color: Color.magenta, expiretime: 0.15f);
-        }
 
         var moveDir = CalcMoveDirection(moveVector, player.Rotation);
         player.CharacterController.SetSteerDirection(moveVector);
@@ -330,16 +317,18 @@ public class MovementSystem
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ResetPath(Agent agent)
     {
+        agent.Movement.Target = Vector3.zero;
         agent.Movement.Path = null;
+        agent.Movement.Status = MovementStatus.Stopped;
         agent.Movement.CurrentCorner = 0;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AssignTarget(Movement movement, NavJob job)
+    private static void AssignPath(Movement movement, NavJob job)
     {
         movement.Target = job.Target;
         movement.Path = job.Path;
-        movement.Status = job.Status;
+        movement.Status = MovementStatus.Moving;
         movement.CurrentCorner = 0;
     }
 
@@ -469,7 +458,7 @@ public class MovementSystem
                     DebugLog.Write($"{agent} is stuck, giving up.");
                     stuck.State = StuckState.Failed;
                     ResetPath(agent);
-                    agent.Movement.Status = NavMeshPathStatus.PathInvalid;
+                    agent.Movement.Status = MovementStatus.Failed;
                     break;
                 case StuckState.Failed:
                     Debug.Log("Skipping failed state");

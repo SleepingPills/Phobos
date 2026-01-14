@@ -44,7 +44,7 @@ public class LookSystem
                         break;
                 }
             }
-            else if (movement.IsValid && (movement.Path[^1] - agent.Position).sqrMagnitude > MoveTargetProxmityDistSqr)
+            else if (movement.HasPath && (movement.Path[^1] - agent.Position).sqrMagnitude > MoveTargetProxmityDistSqr)
             {
                 var fwdPoint = PathHelper.CalcForwardPoint(movement.Path, agent.Position, movement.CurrentCorner, MoveLookAheadDistSqr);
                 var lookDirection = fwdPoint - agent.Position;

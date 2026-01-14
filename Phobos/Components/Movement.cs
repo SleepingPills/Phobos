@@ -1,15 +1,21 @@
 ﻿using System.Runtime.CompilerServices;
 using Phobos.Helpers;
 using UnityEngine;
-using UnityEngine.AI;
 
 namespace Phobos.Components;
+
+public enum MovementStatus
+{
+    Stopped,
+    Moving,
+    Failed
+}
 
 public class Movement
 {
     public Vector3 Target;
     public Vector3[] Path;
-    public NavMeshPathStatus Status;
+    public MovementStatus Status = MovementStatus.Stopped;
 
     public int CurrentCorner;
     public int Retry;
@@ -19,10 +25,10 @@ public class Movement
     public bool Sprint = false;
     public bool Prone = false;
 
-    public bool IsValid
+    public bool HasPath
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get => Path != null;
+        get => Path is { Length: > 0 };
     }
 
     public readonly TimePacing VoxelUpdatePacing = new(0.25f);

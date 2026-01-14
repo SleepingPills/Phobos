@@ -27,6 +27,8 @@ public class Plugin : BaseUnityPlugin
 
     public static ManualLogSource Log;
 
+    public static ConfigEntry<bool> ScavSquadsEnabled;
+    
     public static ConfigEntry<float> ZoneRadiusScale;
     public static ConfigEntry<float> ZoneForceScale;
     public static ConfigEntry<float> ZoneRadiusDecayScale;
@@ -103,6 +105,12 @@ public class Plugin : BaseUnityPlugin
         /*
          * General
          */
+        ScavSquadsEnabled = Config.Bind(debug, "Brown Tide (RESTART)", false, new ConfigDescription(
+            "Allows scavs to form squads. Beware! They'll tend to congeal into massive tides that sweep over the map.",
+            null,
+            new ConfigurationManagerAttributes { Order = 4 }
+        ));
+        
         ZoneRadiusScale = Config.Bind(general, "Zone Radius Scale", 1f, new ConfigDescription(
             "Scales the radius of the zones on the map.",
             new AcceptableValueRange<float>(0f, 10f),
