@@ -231,18 +231,18 @@ public class MovementSystem
         }
         else
         {
-            // Sometimes the last movement corner might not be exactly on the actual target. Add an extra check to short circuit.
-            if ((movement.Target - agent.Player.Position).sqrMagnitude <= TargetReachedDistSqr
-                || (movement.Path[movement.CurrentCorner] - agent.Player.Position).sqrMagnitude <= TargetReachedDistSqr)
+            // If the path doesn't reach far enough, retry again. Don't rely on unity's path status value here.
+            if ((movement.Target - movement.Path[movement.CurrentCorner]).sqrMagnitude > TargetReachedDistSqr)
             {
-                ResetPath(agent);
+                movement.Status =  NavMeshPathStatus.PathPartial;
+                MoveRetry(agent, movement.Target);
                 return;
             }
-
-            // If the path is partial AND doesn't reach far enough, recalculate
-            if (movement.Status == NavMeshPathStatus.PathPartial)
+            
+            // We retry pathing above if the last corner doesn't reach far enough, here just check whether we reached that corner.
+            if ((movement.Path[movement.CurrentCorner] - agent.Player.Position).sqrMagnitude <= TargetReachedDistSqr)
             {
-                MoveRetry(agent, movement.Target);
+                ResetPath(agent);
                 return;
             }
         }
