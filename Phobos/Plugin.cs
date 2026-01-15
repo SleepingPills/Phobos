@@ -28,10 +28,11 @@ public class Plugin : BaseUnityPlugin
     public static ManualLogSource Log;
 
     public static ConfigEntry<bool> ScavSquadsEnabled;
-    
     public static ConfigEntry<float> ZoneRadiusScale;
     public static ConfigEntry<float> ZoneForceScale;
     public static ConfigEntry<float> ZoneRadiusDecayScale;
+    
+    public static ConfigEntry<bool> EmbarkOnFullSquad;
     
     private static ConfigEntry<bool> _loggingEnabled;
     
@@ -99,7 +100,8 @@ public class Plugin : BaseUnityPlugin
     private void SetupConfig()
     {
         const string general = "01. General";
-        const string debug = "02. Diagnostics";
+        const string objectives = "02. Objectives";
+        const string debug = "XX. Diagnostics";
 
         /*
          * General
@@ -130,6 +132,15 @@ public class Plugin : BaseUnityPlugin
             new ConfigurationManagerAttributes { Order = 1 }
         ));
         ZoneRadiusDecayScale.SettingChanged += ZoneParametersChanged;
+        
+        /*
+         * Objectives
+         */
+        EmbarkOnFullSquad = Config.Bind(objectives, "Embark Immediately", false, new ConfigDescription(
+            "Embark immediately when the whole squad reaches the objective.",
+            null,
+            new ConfigurationManagerAttributes { Order = 1 }
+        ));
         
         /*
          * Deboog

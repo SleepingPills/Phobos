@@ -31,7 +31,7 @@ public class GotoObjectiveStrategy(SquadData squadData, AssignmentSystem assignm
         {
             var squad = ActiveEntities[i];
 
-            var startWait = false;
+            var finishedCount = 0;
 
             for (var j = 0; j < squad.Size; j++)
             {
@@ -44,31 +44,48 @@ public class GotoObjectiveStrategy(SquadData squadData, AssignmentSystem assignm
                     DebugLog.Write($"{agent} assigned objective {squad.Objective.Location}");
                 }
 
-                if (agent.Objective.Location == null || squad.Objective.Status == ObjectiveState.Wait)
+                if (agent.Objective.Location == null)
                 {
                     continue;
                 }
 
                 if ((agent.Objective.Location.Position - agent.Player.Position).sqrMagnitude > GotoObjectiveAction.ObjectiveEpsDistSqr)
                 {
+                    // If the agent failed the objective, still count as finished
+                    if (agent.Objective.Status == ObjectiveStatus.Failed)
+                    {
+                        finishedCount++;
+                    }
+                    
                     continue;
                 }
+                
+                finishedCount++;
 
+                if (squad.Objective.Status == ObjectiveState.Wait) continue;
+                    
                 DebugLog.Write($"{agent} reached squad objective {squad.Objective.Location}");
-                startWait = true;
-            }
-
-            if (squad.Objective.Status != ObjectiveState.Wait && startWait)
-            {
                 var waitTime = _waitTimeoutRange.SampleGaussian();
                 squad.Objective.Status = ObjectiveState.Wait;
                 squad.Objective.Timeout = Time.time + waitTime;
                 DebugLog.Write($"{squad} engaging wait mode for {waitTime} seconds");
             }
 
-            if (squad.Objective.Location != null && Time.time < squad.Objective.Timeout) continue;
-
-            AssignNewObjective(squad);
+            if (squad.Objective.Location == null)
+            {
+                DebugLog.Write($"{squad} objective is null, requesting new assignment");
+                AssignNewObjective(squad);
+            }
+            else if (finishedCount == squad.Size && Plugin.EmbarkOnFullSquad.Value)
+            {
+                DebugLog.Write($"{squad} all members are at the objective & immediate embark is on, requesting new assignment");
+                AssignNewObjective(squad);
+            }
+            else if (Time.time >= squad.Objective.Timeout)
+            {
+                DebugLog.Write($"{squad} wait timer ran out, requesting new assignment");
+                AssignNewObjective(squad);
+            }
         }
     }
 
