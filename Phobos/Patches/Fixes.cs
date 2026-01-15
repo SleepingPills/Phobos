@@ -1,9 +1,30 @@
 ﻿using System.Reflection;
+using Comfort.Common;
 using EFT;
 using HarmonyLib;
+using Phobos.Diag;
+using Phobos.Orchestration;
 using SPT.Reflection.Patching;
 
 namespace Phobos.Patches;
+
+// Stolen from Solarint's SAIN
+// Disables the check for is ai in movement context. could break things in the future
+public class MovementContextIsAIPatch : ModulePatch
+{
+    protected override MethodBase GetTargetMethod()
+    {
+        return AccessTools.PropertyGetter(typeof(MovementContext), nameof(MovementContext.IsAI));
+    }
+
+    // ReSharper disable once InconsistentNaming
+    [PatchPrefix]
+    public static bool Patch(ref bool __result)
+    {
+        __result = false;
+        return false;
+    }
+}
 
 // Stolen from Solarint's SAIN
 // Disable specific functions in Manual Update that might be causing erratic movement in sain bots if they are in combat.
@@ -18,7 +39,14 @@ public class BotMoverManualFixedUpdatePatch : ModulePatch
     [PatchPrefix]
     public static bool PatchPrefix(BotMover __instance)
     {
-        return false;
+        if (Singleton<PhobosManager>.Instance == null)
+        {
+            return true;
+        }
+
+        var isPhobosActive = Singleton<BsgBotRegistry>.Instance.IsPhobosActive(__instance.BotOwner_0);
+        DebugLog.Write($"BM FixedUpdatePatch: {__instance.BotOwner_0.Profile.Info.Settings.Role} phobos active {isPhobosActive}");
+        return !isPhobosActive;
     }
 }
 
@@ -37,6 +65,11 @@ public class BotMoverManualUpdatePatch : ModulePatch
     [PatchPrefix]
     public static bool PatchPrefix(BotMover __instance)
     {
+        if (Singleton<PhobosManager>.Instance == null || !Singleton<BsgBotRegistry>.Instance.IsPhobosActive(__instance.BotOwner_0))
+        {
+            return true;
+        }
+
         __instance.LocalAvoidance.DropOffset();
         __instance.PositionOnWayInner = __instance.BotOwner_0.Position;
 

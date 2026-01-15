@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using Comfort.Common;
 using EFT;
 using Phobos.Config;
@@ -28,12 +27,6 @@ public class PhobosManager
     public static RegisterActionsDelegate OnRegisterActions;
     public static RegisterStrategiesDelegate OnRegisterStrategies;
 
-    public SquadRegistry SquadRegistry
-    {
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        get;
-    }
-
     public readonly string MapId;
     public readonly PhobosConfig Config;
 
@@ -49,30 +42,33 @@ public class PhobosManager
 
     public readonly ActionManager ActionManager;
     public readonly StrategyManager StrategyManager;
+    
+    public readonly SquadRegistry SquadRegistry;
 
-    public readonly List<Player> HumanPlayers;
-
+    private readonly BsgBotRegistry _bsgBotRegistry;
     private readonly List<Agent> _liveAgents;
 
-    public PhobosManager(BotsController botsController)
+    public PhobosManager(BotsController botsController, BsgBotRegistry bsgBotRegistry)
     {
         var gameWorld = Singleton<GameWorld>.Instance;
 
         MapId = gameWorld.LocationId;
         Config = new PhobosConfig();
         
-        HumanPlayers = [];
+        List<Player> humanPlayers = [];
 
         var allPlayers = gameWorld.AllAlivePlayersList;
-        
-        foreach (var player in allPlayers)
+
+        // ReSharper disable once LoopCanBeConvertedToQuery
+        for (var i = 0; i < allPlayers.Count; i++)
         {
+            var player = allPlayers[i];
             if (player != null && !player.AIData.IsAI)
             {
-                HumanPlayers.Add(player);
+                humanPlayers.Add(player);
             }
         }
-        
+
         AgentData = new AgentData();
         SquadData = new SquadData();
 
@@ -80,7 +76,7 @@ public class PhobosManager
 
         NavJobExecutor = new NavJobExecutor();
         
-        MovementSystem = new MovementSystem(NavJobExecutor, HumanPlayers);
+        MovementSystem = new MovementSystem(NavJobExecutor, humanPlayers);
         LookSystem = new LookSystem();
         AssignmentSystem = new AssignmentSystem(MapId, Config, botsController);
         DoorSystem = new  DoorSystem();
@@ -93,12 +89,14 @@ public class PhobosManager
         StrategyManager = new StrategyManager(SquadData, strategies);
 
         SquadRegistry = new SquadRegistry(SquadData, StrategyManager);
+        _bsgBotRegistry = bsgBotRegistry;
     }
     
     public Agent AddAgent(BotOwner bot)
     {
         var agent = AgentData.AddEntity(bot, ActionManager.Tasks.Length);
         SquadRegistry.AddAgent(agent);
+        _bsgBotRegistry.AddAgent(agent);
         return agent;
     }
 
@@ -107,6 +105,7 @@ public class PhobosManager
         AgentData.RemoveEntity(agent);
         SquadRegistry.RemoveAgent(agent);
         ActionManager.RemoveEntity(agent);
+        _bsgBotRegistry.RemoveAgent(agent);
     }
 
     public void Update()

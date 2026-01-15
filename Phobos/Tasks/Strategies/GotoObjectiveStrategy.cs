@@ -42,7 +42,7 @@ public class GotoObjectiveStrategy(SquadData squadData, AssignmentSystem assignm
                     DebugLog.Write($"{agent} assigned objective {squad.Objective.Location}");
                 }
 
-                if (squad.Objective.Status == ObjectiveState.Wait || agent.Objective.Location == null)
+                if (agent.Objective.Location == null || squad.Objective.Status == ObjectiveState.Wait)
                 {
                     continue;
                 }
@@ -68,6 +68,19 @@ public class GotoObjectiveStrategy(SquadData squadData, AssignmentSystem assignm
 
             AssignNewObjective(squad);
         }
+    }
+
+    public override void Activate(Squad entity)
+    {
+        // If we have an objective, reset the timer on activation
+        if (entity.Objective.Location != null)
+        {
+            entity.Objective.Timeout = entity.Objective.Status == ObjectiveState.Wait
+                ? _waitTimeoutRange.SampleGaussian()
+                : _moveTimeoutRange.SampleGaussian();
+        }
+        
+        base.Activate(entity);
     }
 
     public override void Deactivate(Entity entity)

@@ -28,10 +28,12 @@ public class PhobosInitPatch : ModulePatch
         DebugLog.Write("Initializing Phobos");
 
         // Core
-        var phobosManager = new PhobosManager(__instance);
+        var bsgBotRegistry = new BsgBotRegistry();
+        var phobosManager = new PhobosManager(__instance, bsgBotRegistry);
 
         // Registry
         Singleton<PhobosManager>.Create(phobosManager);
+        Singleton<BsgBotRegistry>.Create(bsgBotRegistry);
     }
 }
 
@@ -69,24 +71,7 @@ public class PhobosDisposePatch : ModulePatch
     {
         Plugin.Log.LogInfo("Disposing of static & long lived objects.");
         Singleton<PhobosManager>.Release(Singleton<PhobosManager>.Instance);
+        Singleton<BsgBotRegistry>.Release(Singleton<BsgBotRegistry>.Instance);
         Plugin.Log.LogInfo("Disposing complete.");
-    }
-}
-
-// Stolen from Solarint's SAIN
-// Disables the check for is ai in movement context. could break things in the future
-public class MovementContextIsAIPatch : ModulePatch
-{
-    protected override MethodBase GetTargetMethod()
-    {
-        return AccessTools.PropertyGetter(typeof(MovementContext), nameof(MovementContext.IsAI));
-    }
-
-    // ReSharper disable once InconsistentNaming
-    [PatchPrefix]
-    public static bool Patch(ref bool __result)
-    {
-        __result = false;
-        return false;
     }
 }

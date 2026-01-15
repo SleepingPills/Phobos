@@ -143,6 +143,7 @@ public class PhobosLayer : CustomLayer
         sb.AppendLine($"Pose: {pose} DestSpeed: {destSpeed} ActualSpeed: {actualSpeed}");
         sb.AppendLine("*** Squad ***");
         sb.AppendLine($"{_agent.Squad}, size: {_agent.Squad.Size}");
+        sb.AppendLine($"{_agent.Squad.Objective}");
         sb.AppendLine("*** Actions ***");
         GenerateUtilityReport(sb);
         // sb.AppendLine($"Standby: {BotOwner.StandBy.StandByType} CanDoStandBy: {BotOwner.StandBy.CanDoStandBy}");
