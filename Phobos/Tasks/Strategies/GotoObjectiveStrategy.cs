@@ -1,4 +1,5 @@
 ﻿using System.Runtime.CompilerServices;
+using Phobos.Components;
 using Phobos.Components.Squad;
 using Phobos.Data;
 using Phobos.Diag;
@@ -61,7 +62,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
                 AssignNewObjective(squad);
                 continue;
             }
-            
+
             var finishedCount = UpdateAgents(squad);
 
             if (finishedCount == squad.Size)
@@ -127,9 +128,16 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
             {
                 continue;
             }
-            
+
             if ((agentObjective.Location.Position - agent.Player.Position).sqrMagnitude > agentObjective.Location.RadiusSqr)
             {
+                // If we are not in the objective radius, the movement target is current and the movement status failed, consider this objective finished
+                if (agent.Movement.Status == MovementStatus.Failed
+                    && MovementSystem.IsMovementTargetCurrent(agent, agentObjective.Location.Position))
+                {
+                    finishedCount++;
+                }
+
                 continue;
             }
 
@@ -179,7 +187,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
         objective.Duration = duration;
         objective.DurationAdjusted = true;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AdjustDuration(SquadObjective objective, float duration, float startTime)
     {

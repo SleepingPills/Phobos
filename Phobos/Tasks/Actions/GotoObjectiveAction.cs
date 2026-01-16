@@ -31,7 +31,7 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
             }
 
             // If the movement failed and the target is up to date, there's nothing for us to do.  
-            if (agent.Movement.Status == MovementStatus.Failed && IsMovementTargetCurrent(agent, location))
+            if (agent.Movement.Status == MovementStatus.Failed && MovementSystem.IsMovementTargetCurrent(agent, location.Position))
             {
                 agent.TaskScores[ordinal] = 0;
                 continue;
@@ -61,7 +61,7 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
             }
             
             // Target hysteresis: skip new move orders if the objective deviates from the target by less than the move system epsilon
-            if (IsMovementTargetCurrent(agent, objective.Location))
+            if (MovementSystem.IsMovementTargetCurrent(agent, objective.Location.Position))
             {
                 continue;
             }
@@ -92,11 +92,5 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
         }
 
         movementSystem.MoveToByPath(entity, location.Position);
-    }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsMovementTargetCurrent(Agent agent, Location location)
-    {
-        return (agent.Movement.Target - location.Position).sqrMagnitude <= MovementSystem.TargetEpsSqr;
     }
 }

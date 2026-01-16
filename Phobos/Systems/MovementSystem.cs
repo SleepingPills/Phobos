@@ -15,7 +15,7 @@ namespace Phobos.Systems;
 
 public class MovementSystem
 {
-    public const float TargetEpsSqr = 1.5f * 1.5f;
+    private const float TargetEpsSqr = 1.5f * 1.5f;
     private const float CornerWalkEpsSqr = 0.35f * 0.35f;
     private const float CornerSprintEpsSqr = 0.6f * 0.6f;
     private const int RetryLimit = 10;
@@ -71,6 +71,12 @@ public class MovementSystem
 
             UpdateMovement(agent);
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool IsMovementTargetCurrent(Agent agent, Vector3 destination)
+    {
+        return (agent.Movement.Target - destination).sqrMagnitude <= TargetEpsSqr;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -138,7 +144,7 @@ public class MovementSystem
 
         if (!movement.HasPath || movement.Status == MovementStatus.Failed || movement.Status == MovementStatus.Stopped)
             return;
-        
+
         if (movement.VoxelUpdatePacing.Allowed())
         {
             bot.AIData.SetPosToVoxel(agent.Position);
@@ -237,7 +243,7 @@ public class MovementSystem
                 MoveRetry(agent, movement.Target);
                 return;
             }
-            
+
             // We retry pathing above if the last corner doesn't reach far enough, here just check whether we reached that corner.
             if ((movement.Path[movement.CurrentCorner] - agent.Player.Position).sqrMagnitude <= TargetEpsSqr)
             {
@@ -312,7 +318,7 @@ public class MovementSystem
         agent.Movement.Prone = false;
         agent.Movement.Sprint = false;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ResetPath(Agent agent)
     {
