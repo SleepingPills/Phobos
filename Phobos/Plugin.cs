@@ -66,9 +66,9 @@ public class Plugin : BaseUnityPlugin
         }
         
         // Patches
+        new GetBotsControllerPatch().Enable();
         new PhobosInitPatch().Enable();
         new PhobosDisposePatch().Enable();
-        new PhobosFrameUpdatePatch().Enable();
         
         new MovementContextIsAIPatch().Enable();
         new BotMoverManualFixedUpdatePatch().Enable();
