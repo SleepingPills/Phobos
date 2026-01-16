@@ -242,7 +242,7 @@ public class MovementSystem
             if ((movement.Path[movement.CurrentCorner] - agent.Player.Position).sqrMagnitude <= TargetEpsSqr)
             {
                 DebugLog.Write($"{agent} destination reached");
-                movement.Target = Movement.Infinity;
+                // Don't reset the target here. Our target hasn't changed, we just reached it. 
                 ResetPath(agent);
                 return;
             }

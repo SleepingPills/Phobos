@@ -188,8 +188,9 @@ public class AssignmentSystem
             }
         }
 
-        var randomization = Random.insideUnitCircle;
         var advectionVector = _advectionField[requestCoords.x, requestCoords.y];
+        var randomization = Random.insideUnitCircle;
+        randomization *= 0.5f;
         var momentumVector = (Vector2)(requestCoords - previousCoords);
         momentumVector.Normalize();
         momentumVector *= 0.5f;
@@ -536,19 +537,14 @@ public class AssignmentSystem
         var exfilController = Singleton<GameWorld>.Instance.ExfiltrationController;
 
         var uniqueExfils = new HashSet<Exfil>();
-
-        foreach (var player in humanPlayers)
+        
+        foreach (var point in exfilController.ExfiltrationPoints)
         {
-            var eligibleExfils = exfilController.EligiblePoints(player.Profile);
-            DebugLog.Write($"Found {eligibleExfils.Length} exfils for player {player.Profile.Nickname}");
-            
-            // We only collect exfils that humans can go to. People won't really notice bots exfil camping each other.
-            foreach (var eligiblePoint in eligibleExfils)
-            {
-                uniqueExfils.Add(new Exfil(eligiblePoint));
-            }
+            uniqueExfils.Add(new Exfil(point));
         }
-
+        
+        DebugLog.Write($"Found {uniqueExfils.Count} exfils");
+        
         foreach (var exfil in uniqueExfils)
         {
             DebugLog.Write($"Trying to add exfil {exfil.Point.name} with ID {exfil.Point.Id}");

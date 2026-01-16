@@ -14,7 +14,6 @@ using Phobos.Enums;
 using Phobos.Orchestration;
 using Phobos.Patches;
 using UnityEngine;
-using Range = Phobos.Config.Range;
 
 namespace Phobos;
 
@@ -129,7 +128,7 @@ public class Plugin : BaseUnityPlugin
             null,
             new ConfigurationManagerAttributes { Order = 2 }
         ));
-        ObjectiveGuardDurationCut = Config.Bind(objectives, "Guard Duration Cut (RESTART)", new Vector2(0.35f, 0.65f), new ConfigDescription(
+        ObjectiveGuardDurationCut = Config.Bind(objectives, "Guard Duration Cut (RESTART)", new Vector2(0.1f, 0.5f), new ConfigDescription(
             "How much to scale down the remaining wait time for loot objectives once all the members are at the location",
             null,
             new ConfigurationManagerAttributes { Order = 1 }

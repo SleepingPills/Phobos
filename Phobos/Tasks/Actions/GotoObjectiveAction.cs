@@ -1,7 +1,9 @@
-﻿using Phobos.Components;
+﻿using System.Runtime.CompilerServices;
+using Phobos.Components;
 using Phobos.Data;
 using Phobos.Diag;
 using Phobos.Entities;
+using Phobos.Navigation;
 using Phobos.Systems;
 using UnityEngine;
 
@@ -21,7 +23,15 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
             var agent = agents[i];
             var location = agent.Objective.Location;
             
-            if (agent.Objective.Status == ObjectiveStatus.Failed || location == null)
+            // If we don't have an objective or the movement failed
+            if (location == null)
+            {
+                agent.TaskScores[ordinal] = 0;
+                continue;
+            }
+
+            // If the movement failed and the target is up to date, there's nothing for us to do.  
+            if (agent.Movement.Status == MovementStatus.Failed && IsMovementTargetCurrent(agent, location))
             {
                 agent.TaskScores[ordinal] = 0;
                 continue;
@@ -45,21 +55,13 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
             var agent = ActiveEntities[i];
             var objective = agent.Objective;
 
-            if (agent.Objective.Status == ObjectiveStatus.Failed || objective.Location == null)
+            if (objective.Location == null)
             {
-                continue;
-            }
-
-            // We'll fail the objective if we are outside it's radius and the movement itself failed
-            if (agent.Movement.Status == MovementStatus.Failed
-                && (objective.Location.Position - agent.Position).sqrMagnitude > objective.Location.RadiusSqr)
-            {
-                objective.Status = ObjectiveStatus.Failed;
                 continue;
             }
             
             // Target hysteresis: skip new move orders if the objective deviates from the target by less than the move system epsilon
-            if ((agent.Movement.Target - objective.Location.Position).sqrMagnitude <= MovementSystem.TargetEpsSqr)
+            if (IsMovementTargetCurrent(agent, objective.Location))
             {
                 continue;
             }
@@ -90,5 +92,11 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
         }
 
         movementSystem.MoveToByPath(entity, location.Position);
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsMovementTargetCurrent(Agent agent, Location location)
+    {
+        return (agent.Movement.Target - location.Position).sqrMagnitude <= MovementSystem.TargetEpsSqr;
     }
 }

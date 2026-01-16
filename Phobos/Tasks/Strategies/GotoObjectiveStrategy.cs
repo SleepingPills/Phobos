@@ -1,5 +1,4 @@
 ﻿using System.Runtime.CompilerServices;
-using Phobos.Components;
 using Phobos.Components.Squad;
 using Phobos.Data;
 using Phobos.Diag;
@@ -121,7 +120,6 @@ public class GotoObjectiveStrategy(SquadData squadData, AssignmentSystem assignm
             if (agentObjective.Location != squadObjective.Location)
             {
                 agentObjective.Location = squadObjective.Location;
-                agentObjective.Status = ObjectiveStatus.Active;
                 DebugLog.Write($"{agent} assigned objective {squadObjective.Location}");
             }
 
@@ -129,15 +127,9 @@ public class GotoObjectiveStrategy(SquadData squadData, AssignmentSystem assignm
             {
                 continue;
             }
-
+            
             if ((agentObjective.Location.Position - agent.Player.Position).sqrMagnitude > agentObjective.Location.RadiusSqr)
             {
-                // If the agent failed the objective, still count as finished
-                if (agentObjective.Status == ObjectiveStatus.Failed)
-                {
-                    finishedCount++;
-                }
-
                 continue;
             }
 
