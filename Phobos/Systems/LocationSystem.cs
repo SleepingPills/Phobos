@@ -56,6 +56,7 @@ public class LocationSystem
 
     public LocationSystem(string mapId, PhobosConfig phobosConfig, BotsController botsController)
     {
+        DebugLog.Write("Calculating world geometry");
         _zoneConfig = phobosConfig.Location.MapZones[mapId];
         _botsController = botsController;
 
@@ -83,6 +84,8 @@ public class LocationSystem
 
         var searchRadius = Math.Max(worldWidth, worldHeight) / 2f;
 
+        DebugLog.Write("Constructing location system cells");
+        
         // Cell initialization
         var cellId = 0;
         for (var x = 0; x < cols; x++)
@@ -94,6 +97,7 @@ public class LocationSystem
             }
         }
 
+        DebugLog.Write("Gathering built in locations");
         _locationGatherer = new LocationGatherer(_cellSize);
         // Add the builtin locations
         var builtinLocations = _locationGatherer.CollectBuiltinLocations();

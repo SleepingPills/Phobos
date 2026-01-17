@@ -52,6 +52,10 @@ public class Plugin : BaseUnityPlugin
 
         // Config
         SetupConfig();
+        
+        // Ensure that the configuration files are created
+        // ReSharper disable once ObjectCreationAsStatement
+        new PhobosConfig();
 
         Log.LogInfo("Initialization finished");
 
@@ -93,10 +97,6 @@ public class Plugin : BaseUnityPlugin
 
         // This layer makes scavs stand still doing bugger all, remove it
         BrainManager.RemoveLayer("AssaultEnemyFar", brains);
-        
-        // Ensure that the configuration files are created
-        // ReSharper disable once ObjectCreationAsStatement
-        new PhobosConfig();
     }
     
     private void SetupConfig()
