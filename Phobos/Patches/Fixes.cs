@@ -1,11 +1,29 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics;
+using System.Reflection;
 using Comfort.Common;
 using EFT;
 using HarmonyLib;
+using Phobos.Diag;
 using Phobos.Orchestration;
 using SPT.Reflection.Patching;
 
 namespace Phobos.Patches;
+
+public class BotMoverTeleportFixPatch : ModulePatch
+{
+    protected override MethodBase GetTargetMethod()
+    {
+        return typeof(BotMover).GetMethod(nameof(BotMover.Teleport));
+    }
+
+    // ReSharper disable once InconsistentNaming
+    [PatchPrefix]
+    public static bool Patch(BotMover __instance)
+    {
+        DebugLog.Write($"Teleport {__instance.BotOwner_0.GetPlayer.Profile.Nickname} {new StackTrace(true)}");
+        return false;
+    }
+}
 
 // Stolen from Solarint's SAIN
 // Disables the check for is ai in movement context. could break things in the future

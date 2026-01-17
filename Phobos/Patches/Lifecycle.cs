@@ -7,7 +7,7 @@ using SPT.Reflection.Patching;
 
 namespace Phobos.Patches;
 
-public class GetBotsControllerPatch : ModulePatch
+public class PhobosInitPatch : ModulePatch
 {
     protected override MethodBase GetTargetMethod()
     {
@@ -19,41 +19,15 @@ public class GetBotsControllerPatch : ModulePatch
     [PatchPostfix]
     public static void Postfix(BotsController __instance)
     {
-        // Registry
-        Singleton<BotsController>.Create(__instance);
-    }
-}
-
-public class PhobosInitPatch : ModulePatch
-{
-    private static readonly PhobosFrameUpdatePatch FrameUpdatePatch = new();
-
-    protected override MethodBase GetTargetMethod()
-    {
-        // return typeof(BotsController).GetConstructor(Type.EmptyTypes);
-        return typeof(GameWorld).GetMethod(nameof(GameWorld.OnGameStarted));
-    }
-
-    // ReSharper disable once InconsistentNaming
-    [PatchPrefix]
-    public static void Prefix(GameWorld __instance)
-    {
         DebugLog.Write("Initializing Phobos");
-
+        
         // Core
         var bsgBotRegistry = new BsgBotRegistry();
-        var phobosManager = new PhobosManager(Singleton<BotsController>.Instance, bsgBotRegistry);
+        var phobosManager = new PhobosManager(__instance, bsgBotRegistry);
 
         // Registry
         Singleton<PhobosManager>.Create(phobosManager);
         Singleton<BsgBotRegistry>.Create(bsgBotRegistry);
-
-        // This needs to be patched in here because the frame updates start running way before OnGameStarted is called, but the exfils
-        // aren't available earlier with vanilla SPT.
-        if (!FrameUpdatePatch.IsActive)
-        {
-            FrameUpdatePatch.Enable();
-        }
     }
 }
 

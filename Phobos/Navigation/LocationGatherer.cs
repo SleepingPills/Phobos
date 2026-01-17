@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Comfort.Common;
 using EFT;
 using EFT.Interactive;
+using EFT.Interactive.SecretExfiltrations;
 using Phobos.Diag;
 using UnityEngine;
 using UnityEngine.AI;
@@ -42,12 +44,17 @@ public class LocationGatherer(float cellSize)
         }
 
         DebugLog.Write("Collecting exfil POIs");
-        var exfilController = Singleton<GameWorld>.Instance.ExfiltrationController;
 
         var uniqueExfils = new HashSet<Exfil>();
-
-        foreach (var point in exfilController.ExfiltrationPoints)
+        
+        foreach (var point in LocationScene.GetAllObjects<ExfiltrationPoint>())
         {
+            // Skip non-shared scav exfils to mirror the BSG logic in ExfiltrationControllerClass 
+            if (point is ScavExfiltrationPoint and not SharedExfiltrationPoint)
+            {
+                continue;
+            }
+            
             uniqueExfils.Add(new Exfil(point));
         }
 

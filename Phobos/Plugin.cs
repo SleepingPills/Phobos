@@ -23,7 +23,7 @@ namespace Phobos;
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 public class Plugin : BaseUnityPlugin
 {
-    public const string PhobosVersion = "0.1.0";
+    public const string PhobosVersion = "0.1.2";
 
     public static ManualLogSource Log;
 
@@ -70,10 +70,11 @@ public class Plugin : BaseUnityPlugin
         }
 
         // Patches
-        new GetBotsControllerPatch().Enable();
         new PhobosInitPatch().Enable();
+        new PhobosFrameUpdatePatch().Enable();
         new PhobosDisposePatch().Enable();
         
+        new BotMoverTeleportFixPatch().Enable();
         new MovementContextIsAIPatch().Enable();
         new EnableVaultPatch().Enable();
         new BotMoverManualFixedUpdatePatch().Enable();
@@ -83,8 +84,6 @@ public class Plugin : BaseUnityPlugin
         new BypassAssaultEnemyFarPatch().Enable();
         // High priority (79!) and causes bots to get stuck
         new BypassExfiltrationPatch().Enable();
-        // Causes occasional teleport
-        new BypassLootPatrolPatch().Enable();
 
         // Misc setup
         var brains = new List<string>()

@@ -4,22 +4,6 @@ using SPT.Reflection.Patching;
 
 namespace Phobos.Patches;
 
-// Bypass the "LootPatrol" layer
-public class BypassLootPatrolPatch : ModulePatch
-{
-    protected override MethodBase GetTargetMethod()
-    {
-        return AccessTools.Method(typeof(GClass117), nameof(GClass117.ShallUseNow));
-    }
-
-    // ReSharper disable once InconsistentNaming
-    [PatchPrefix]
-    public static bool Patch()
-    {
-        return false;
-    }
-}
-
 // Bypass the "AssaultEnemyFar" layer
 public class BypassAssaultEnemyFarPatch : ModulePatch
 {
