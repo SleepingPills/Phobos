@@ -172,13 +172,13 @@ public class Plugin : BaseUnityPlugin
             new ConfigurationManagerAttributes { Order = 4, CustomDrawer = CameraCoordsToggle }
         ));
 
-        Config.Bind(debug, "Location System", "", new ConfigDescription(
+        Config.Bind(debug, "Advection Grid", "", new ConfigDescription(
             "Displays information about the location system state.",
             null,
             new ConfigurationManagerAttributes { Order = 3, CustomDrawer = LocationSystemTelemetryToggle }
         ));
 
-        Config.Bind(debug, "Movement", "", new ConfigDescription(
+        Config.Bind(debug, "Movement Gizmos", "", new ConfigDescription(
             "Displays information about the movement system state.",
             null,
             new ConfigurationManagerAttributes { Order = 2, CustomDrawer = MovementTelemetryToggle }

@@ -2,9 +2,9 @@
 
 * What map are you playing, PMC or Scav
 * Screenshot of modlist
-* Upload Player.log
-* If you can load into a raid:
+* Player.log
+* If you can load into a raid, also provide the following please:
   * Enable Phobos Movement Diagnostics
   * Enable BotDebug and set display to Big Brain Logic
-  * Upload a video of the bots, or whatever is misbehaving
+  * Upload a video of the misbehaving bots
   * Upload a screenshot of the advection grid (from the F12 menu)
