@@ -66,7 +66,6 @@ public class PhobosDisposePatch : ModulePatch
         Plugin.Log.LogInfo("Disposing of static & long lived objects.");
         Singleton<PhobosManager>.Release(Singleton<PhobosManager>.Instance);
         Singleton<BsgBotRegistry>.Release(Singleton<BsgBotRegistry>.Instance);
-        Singleton<BotsController>.Release(Singleton<BotsController>.Instance);
         Plugin.Log.LogInfo("Disposing complete.");
     }
 }
