@@ -23,7 +23,7 @@ namespace Phobos;
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 public class Plugin : BaseUnityPlugin
 {
-    public const string PhobosVersion = "0.1.8";
+    public const string PhobosVersion = "0.1.9";
 
     public static ManualLogSource Log;
 
@@ -32,9 +32,13 @@ public class Plugin : BaseUnityPlugin
     public static ConfigEntry<Vector2> ObjectiveGuardDurationCut;
 
     public static ConfigEntry<bool> ScavSquadsEnabled;
-    public static ConfigEntry<float> ZoneRadiusScale;
-    public static ConfigEntry<float> ZoneForceScale;
-    public static ConfigEntry<float> ZoneRadiusDecayScale;
+    
+    public static ConfigEntry<float> ConvergenceRadiusScale;
+    public static ConfigEntry<float> ConvergenceForceScale;
+    
+    public static ConfigEntry<float> AdvectionZoneRadiusScale;
+    public static ConfigEntry<float> AdvectionZoneForceScale;
+    public static ConfigEntry<float> AdvectionZoneRadiusDecayScale;
 
     private static ConfigEntry<bool> _loggingEnabled;
 
@@ -142,26 +146,40 @@ public class Plugin : BaseUnityPlugin
         /*
          * General
          */
-        ZoneRadiusScale = Config.Bind(zones, "Zone Radius Scale", 1f, new ConfigDescription(
+        ConvergenceRadiusScale = Config.Bind(zones, "Convergence Radius Scale", 1f, new ConfigDescription(
+            "Scales the radius of the convergence force emitted from the players.",
+            new AcceptableValueRange<float>(0f, 10f),
+            new ConfigurationManagerAttributes { Order = 5 }
+        ));
+        ConvergenceRadiusScale.SettingChanged += ConvergenceParametersChanged;
+        
+        ConvergenceForceScale = Config.Bind(zones, "Convergence Force Scale", 1f, new ConfigDescription(
+            "Scales the strength of the convergence force emitted from the players.",
+            new AcceptableValueRange<float>(0f, 10f),
+            new ConfigurationManagerAttributes { Order = 4 }
+        ));
+        ConvergenceForceScale.SettingChanged += ConvergenceParametersChanged;
+        
+        AdvectionZoneRadiusScale = Config.Bind(zones, "Advection Zone Radius Scale", 1f, new ConfigDescription(
             "Scales the radius of the zones on the map.",
             new AcceptableValueRange<float>(0f, 10f),
             new ConfigurationManagerAttributes { Order = 3 }
         ));
-        ZoneRadiusScale.SettingChanged += ZoneParametersChanged;
+        AdvectionZoneRadiusScale.SettingChanged += AdvectionZoneParametersChanged;
 
-        ZoneForceScale = Config.Bind(zones, "Zone Force Scale", 1f, new ConfigDescription(
+        AdvectionZoneForceScale = Config.Bind(zones, "Advection Zone Force Scale", 1f, new ConfigDescription(
             "Scales the forces exerted by the zones on the map. Negative scaling flips the sign, turning attractors into repulsors and vice versa.",
             new AcceptableValueRange<float>(-10f, 10f),
             new ConfigurationManagerAttributes { Order = 2 }
         ));
-        ZoneForceScale.SettingChanged += ZoneParametersChanged;
+        AdvectionZoneForceScale.SettingChanged += AdvectionZoneParametersChanged;
 
-        ZoneRadiusDecayScale = Config.Bind(zones, "Zone Force Decay Scale", 1f, new ConfigDescription(
+        AdvectionZoneRadiusDecayScale = Config.Bind(zones, "Advection Zone Force Decay Scale", 1f, new ConfigDescription(
             "Scales the zone force decay exponent.",
             new AcceptableValueRange<float>(0f, 5f),
             new ConfigurationManagerAttributes { Order = 1 }
         ));
-        ZoneRadiusDecayScale.SettingChanged += ZoneParametersChanged;
+        AdvectionZoneRadiusDecayScale.SettingChanged += AdvectionZoneParametersChanged;
 
         /*
          * Deboog
@@ -191,9 +209,14 @@ public class Plugin : BaseUnityPlugin
         ));
     }
 
-    private static void ZoneParametersChanged(object sender, EventArgs args)
+    private static void ConvergenceParametersChanged(object sender, EventArgs args)
     {
-        Singleton<PhobosManager>.Instance?.LocationSystem.CalculateZones();
+        Singleton<PhobosManager>.Instance?.LocationSystem.CalculateConvergence();
+    }
+    
+    private static void AdvectionZoneParametersChanged(object sender, EventArgs args)
+    {
+        Singleton<PhobosManager>.Instance?.LocationSystem.CalculateAdvectionZones();
     }
 
     private static void CameraCoordsToggle(ConfigEntryBase entry)
@@ -233,9 +256,11 @@ public class Plugin : BaseUnityPlugin
             Destroy(telemetry);
         }
 
-        if (GUILayout.Button("Reload Zones"))
+        if (GUILayout.Button("Reload Config"))
         {
-            Singleton<PhobosManager>.Instance?.LocationSystem.CalculateZones();
+            Singleton<PhobosManager>.Instance?.LocationSystem.ReloadConfig();
+            Singleton<PhobosManager>.Instance?.LocationSystem.CalculateConvergence();
+            Singleton<PhobosManager>.Instance?.LocationSystem.CalculateAdvectionZones();
         }
     }
 

@@ -78,7 +78,7 @@ public class PhobosManager
         
         MovementSystem = new MovementSystem(NavJobExecutor, humanPlayers);
         LookSystem = new LookSystem();
-        LocationSystem = new LocationSystem(MapId, Config, botsController);
+        LocationSystem = new LocationSystem(MapId, Config, botsController, humanPlayers);
         DoorSystem = new  DoorSystem();
         
         RegisterComponents();
@@ -110,6 +110,7 @@ public class PhobosManager
 
     public void Update()
     {
+        LocationSystem.Update();
         StrategyManager.Update();
         ActionManager.Update();
         MovementSystem.Update(_liveAgents);

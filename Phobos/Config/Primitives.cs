@@ -1,10 +1,14 @@
-﻿using Newtonsoft.Json;
+﻿using System.Runtime.CompilerServices;
+using Newtonsoft.Json;
 using UnityEngine;
 
 namespace Phobos.Config;
 
 public struct Range(float min, float max)
 {
+    public static Range Zero =>  new Range(0f, 0f);
+    public static Range ZeroOne => new Range(0f, 1f);
+    
     [JsonRequired] public float Min { get; set; } = min;
     [JsonRequired] public float Max { get; set; } = max;
         
@@ -21,5 +25,11 @@ public struct Range(float min, float max)
         var sigma = (Max - Min) / 6.0f;
         
         return Mathf.Clamp(mean + stdNormal * sigma, Min, Max);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public float SampleUniform()
+    {
+        return Random.Range(Min, Max);
     }
 }

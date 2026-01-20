@@ -38,29 +38,34 @@ public class ZoneTelemetry : MonoBehaviour
 
         RenderGrid(
             phobos.AgentData.Entities.Values,
-            phobos.LocationSystem.Cells,
-            phobos.LocationSystem.AdvectionField,
-            phobos.LocationSystem.Zones,
             phobos.LocationSystem.GridSize,
             phobos.LocationSystem.WorldMin,
-            phobos.LocationSystem.WorldMax
+            phobos.LocationSystem.CellSize,
+            phobos.LocationSystem.Cells,
+            phobos.LocationSystem.AdvectionField,
+            phobos.LocationSystem.ConvergenceField,
+            phobos.LocationSystem.Zones
         );
     }
 
     private void RenderGrid(
-        List<Agent> agents, Cell[,] cells, Vector2[,] advectionField, List<LocationSystem.Zone> zones,
-        Vector2Int gridSize, Vector2 worldMin, Vector2 worldMax
+        List<Agent> agents,
+        Vector2Int gridSize, Vector2 worldOffset, float worldCellSize,
+        Cell[,] cells, Vector2[,] advectionField, Vector2[,] convergenceField,
+        List<LocationSystem.Zone> zones
     )
     {
         if (cells == null || gridSize.x == 0 || gridSize.y == 0)
             return;
+        
+        var worldRect = new Rect(worldOffset.x, worldOffset.y, gridSize.x * worldCellSize, gridSize.y * worldCellSize);
 
         // Calculate display dimensions to keep cells square
-        var maxDimension = Mathf.Max(gridSize.x, gridSize.y);
-        var cellSize = GridDisplaySize / maxDimension;
+        var maxGridDimension = Mathf.Max(gridSize.x, gridSize.y);
+        var displayCellSize = GridDisplaySize / maxGridDimension;
 
-        var displayWidth = cellSize * gridSize.x;
-        var displayHeight = cellSize * gridSize.y;
+        var displayWidth = displayCellSize * gridSize.x;
+        var displayHeight = displayCellSize * gridSize.y;
 
         var gridRect = new Rect(
             (Screen.width - displayWidth) * 0.25f,
@@ -75,10 +80,10 @@ public class ZoneTelemetry : MonoBehaviour
             for (var y = 0; y < gridSize.y; y++)
             {
                 var cellRect = new Rect(
-                    gridRect.x + x * cellSize,
-                    gridRect.y + (gridSize.y - 1 - y) * cellSize, // Flip Y
-                    cellSize,
-                    cellSize
+                    gridRect.x + x * displayCellSize,
+                    gridRect.y + (gridSize.y - 1 - y) * displayCellSize, // Flip Y
+                    displayCellSize,
+                    displayCellSize
                 );
 
                 var cell = cells[x, y];
@@ -86,16 +91,21 @@ public class ZoneTelemetry : MonoBehaviour
                 DrawFilledRect(cellRect, color);
 
                 // Draw cell coordinates
-                DrawCellCoordinates(cellRect, x, y, cellSize);
+                DrawCellCoordinates(cellRect, x, y, displayCellSize);
+                
+                var cellCenter = new Vector2(cellRect.x + cellRect.width / 2, cellRect.y + cellRect.height / 2);
                 
                 // Advection
                 // Have to flip the Y axis coordinate
                 var advectionVector = advectionField[x, y] * new Vector2(1f, -1f);
-
-                if (!(advectionVector.magnitude > 0.01f)) continue;
-
-                var cellCenter = new Vector2(cellRect.x + cellRect.width / 2, cellRect.y + cellRect.height / 2);
-                DrawLine(cellCenter, cellCenter + cellSize * advectionVector / 2, 1f);
+                if (advectionVector.magnitude < 0.01f) continue;
+                DrawLine(cellCenter, cellCenter + displayCellSize * advectionVector / 2, 1f);
+                
+                // Convergence
+                // Have to flip the Y axis coordinate
+                var convergenceVector = convergenceField[x, y] * new Vector2(1f, -1f);
+                if (convergenceVector.magnitude < 0.01f) continue;
+                DrawLine(cellCenter, cellCenter + displayCellSize * convergenceVector / 2, 1f, new Color(0.5f, 0f, 0f));
             }
         }
 
@@ -103,21 +113,21 @@ public class ZoneTelemetry : MonoBehaviour
         {
             var zone = zones[i];
             var zoneScreenCoords = new Vector2(
-                gridRect.x + zone.Coords.x * cellSize + cellSize / 2,
-                gridRect.y + (gridSize.y - 1 - zone.Coords.y) * cellSize + cellSize / 2
+                gridRect.x + zone.Coords.x * displayCellSize + displayCellSize / 2,
+                gridRect.y + (gridSize.y - 1 - zone.Coords.y) * displayCellSize + displayCellSize / 2
             );
             
             DrawDot(zoneScreenCoords, ZoneDotRadius, _zoneColor);
         }
 
         // Draw grid lines
-        DrawGridLines(gridRect, gridSize, cellSize);
+        DrawGridLines(gridRect, gridSize, displayCellSize);
 
         // Draw agents
-        DrawAgents(agents, worldMin, worldMax, gridRect, displayWidth, displayHeight);
+        DrawAgents(agents, worldRect, gridRect);
         
         // Draw players
-        DrawCamera(worldMin, worldMax, gridRect, displayWidth, displayHeight);
+        DrawCamera(worldRect, gridRect);
 
         // Draw border
         DrawRectOutline(gridRect, Color.white, 2f);
@@ -127,22 +137,19 @@ public class ZoneTelemetry : MonoBehaviour
         DrawLegend(new Rect((Screen.width - 300) / 2f, legendY, 300, 160));
     }
 
-    private void DrawAgents(List<Agent> agents, Vector2 worldMin, Vector2 worldMax, Rect gridRect, float displayWidth, float displayHeight)
+    private void DrawAgents(List<Agent> agents, Rect worldRect, Rect gridRect)
     {
-        var worldWidth = worldMax.x - worldMin.x;
-        var worldHeight = worldMax.y - worldMin.y;
-
         for (var i = 0; i < agents.Count; i++)
         {
             var agent = agents[i];
             var pos = agent.Position;
 
             // Convert world position to grid display position
-            var normX = (pos.x - worldMin.x) / worldWidth;
-            var normY = (pos.z - worldMin.y) / worldHeight;
+            var normX = (pos.x - worldRect.x) / worldRect.width;
+            var normY = (pos.z - worldRect.y) / worldRect.height;
 
-            var screenX = gridRect.x + normX * displayWidth;
-            var screenY = gridRect.y + (1f - normY) * displayHeight; // Flip Y
+            var screenX = gridRect.x + normX * gridRect.width;
+            var screenY = gridRect.y + (1f - normY) * gridRect.height; // Flip Y
 
             var color = agent.IsLeader ? _agentLeaderColor : _agentColor;
 
@@ -150,7 +157,7 @@ public class ZoneTelemetry : MonoBehaviour
         }
     }
     
-    private void DrawCamera(Vector2 worldMin, Vector2 worldMax, Rect gridRect, float displayWidth, float displayHeight)
+    private void DrawCamera(Rect worldRect, Rect gridRect)
     {
         var camera = CameraClass.Instance?.Camera;
         
@@ -158,15 +165,12 @@ public class ZoneTelemetry : MonoBehaviour
         
         var pos = camera.transform.position;
         
-        var worldWidth = worldMax.x - worldMin.x;
-        var worldHeight = worldMax.y - worldMin.y;
-
         // Convert world position to grid display position
-        var normX = (pos.x - worldMin.x) / worldWidth;
-        var normY = (pos.z - worldMin.y) / worldHeight;
+        var normX = (pos.x - worldRect.x) / worldRect.width;
+        var normY = (pos.z - worldRect.y) / worldRect.height;
 
-        var screenX = gridRect.x + normX * displayWidth;
-        var screenY = gridRect.y + (1f - normY) * displayHeight; // Flip Y
+        var screenX = gridRect.x + normX * gridRect.width;
+        var screenY = gridRect.y + (1f - normY) * gridRect.height; // Flip Y
 
         DrawDot(new Vector2(screenX, screenY), AgentDotRadius, _cameraColor);
     }
@@ -295,6 +299,14 @@ public class ZoneTelemetry : MonoBehaviour
     private static void DrawLine(Vector2 start, Vector2 end, float thickness)
     {
         DebugUI.DrawLine(start, end, thickness);
+    }
+    
+    private static void DrawLine(Vector2 start, Vector2 end, float thickness, Color color)
+    {
+        var oldColor = GUI.color;
+        GUI.color = color;
+        DebugUI.DrawLine(start, end, thickness);
+        GUI.color = oldColor;
     }
 
     private static void DrawDot(Vector2 center, float radius, Color color)
