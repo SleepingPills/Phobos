@@ -19,7 +19,7 @@ public class PhobosInitPatch : ModulePatch
     [PatchPostfix]
     public static void Postfix(BotsController __instance)
     {
-        DebugLog.Write("Initializing Phobos");
+        Log.Debug("Initializing Phobos");
         
         // Core
         var bsgBotRegistry = new BsgBotRegistry();

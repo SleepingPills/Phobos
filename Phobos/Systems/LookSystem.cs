@@ -40,7 +40,7 @@ public class LookSystem
                         bot.Steering.LookToDirection(agent.Look.Target.Value, 360f);
                         break;
                     default:
-                        DebugLog.Write($"LookType {agent.Look.Type} not implemented");
+                        Log.Debug($"LookType {agent.Look.Type} not implemented");
                         break;
                 }
             }

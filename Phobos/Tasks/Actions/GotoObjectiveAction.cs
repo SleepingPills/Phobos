@@ -66,7 +66,7 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
                 continue;
             }
             
-            DebugLog.Write($"{agent} received new objective {agent.Objective.Location}, submitting move order");
+            Log.Debug($"{agent} received new objective {agent.Objective.Location}, submitting move order");
             movementSystem.MoveToByPath(agent, objective.Location.Position);
         }
     }

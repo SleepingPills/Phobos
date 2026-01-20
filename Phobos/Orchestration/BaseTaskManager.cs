@@ -11,7 +11,7 @@ public class BaseTaskManager<TEntity>(Task<TEntity>[] tasks) where TEntity : Ent
     
     public void RemoveEntity(TEntity entity)
     {
-        DebugLog.Write($"Removing {entity} from {this}");
+        Log.Debug($"Removing {entity} from {this}");
         entity.TaskAssignment.Task?.Deactivate(entity);
         entity.TaskAssignment = new TaskAssignment();
     }
@@ -67,7 +67,7 @@ public class BaseTaskManager<TEntity>(Task<TEntity>[] tasks) where TEntity : Ent
         // Don't need to check whether the next task is the current task, because in that case nextTask will be null
         if (nextTask == null) return;
         
-        DebugLog.Write($"{entity} changing task from {assignment.Task} to {nextTask} with utility {highestScore}");
+        Log.Debug($"{entity} changing task from {assignment.Task} to {nextTask} with utility {highestScore}");
 
         assignment.Task?.Deactivate(entity);
         nextTask.Activate(entity);

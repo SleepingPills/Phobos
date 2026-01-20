@@ -58,7 +58,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
 
             if (squadObjective.Location == null)
             {
-                DebugLog.Write($"{squad} objective is null, requesting new assignment");
+                Log.Debug($"{squad} objective is null, requesting new assignment");
                 AssignNewObjective(squad);
                 continue;
             }
@@ -69,7 +69,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
             {
                 if (squadObjective.Status == ObjectiveState.Active)
                 {
-                    DebugLog.Write($"{squad} all members failed their objective en-route, requesting new assignment");
+                    Log.Debug($"{squad} all members failed their objective en-route, requesting new assignment");
                     AssignNewObjective(squad);
                     continue;
                 }
@@ -82,14 +82,14 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
                         case LocationCategory.LooseLoot:
                             // These objectives will have their wait timer cut if everyone arrived
                             AdjustDuration(squadObjective, squadObjective.Duration * _guardDurationCut.SampleGaussian());
-                            DebugLog.Write($"{squad} adjusted {squadObjective.Location} wait duration to {squadObjective.Duration}");
+                            Log.Debug($"{squad} adjusted {squadObjective.Location} wait duration to {squadObjective.Duration}");
                             break;
                         case LocationCategory.Quest:
                         case LocationCategory.Synthetic:
                             // These objectives simply reset the timer to a very short duration to give the bots chance to disperse
                             // NB: Here we also reset the start time otherwise it's almost guaranteed we'd trigger an immediate timout
                             AdjustDuration(squadObjective, _adjustedGuardDuration.SampleGaussian(), Time.time);
-                            DebugLog.Write($"{squad} adjusted {squadObjective.Location} wait duration to {squadObjective.Duration}");
+                            Log.Debug($"{squad} adjusted {squadObjective.Location} wait duration to {squadObjective.Duration}");
                             break;
                         case LocationCategory.Exfil:
                         default:
@@ -103,7 +103,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
                 continue;
             }
 
-            DebugLog.Write($"{squad} wait timer ran out, requesting new assignment");
+            Log.Debug($"{squad} wait timer ran out, requesting new assignment");
             AssignNewObjective(squad);
         }
     }
@@ -121,7 +121,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
             if (agentObjective.Location != squadObjective.Location)
             {
                 agentObjective.Location = squadObjective.Location;
-                DebugLog.Write($"{agent} assigned objective {squadObjective.Location}");
+                Log.Debug($"{agent} assigned objective {squadObjective.Location}");
             }
 
             if (agentObjective.Location == null)
@@ -145,11 +145,11 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
 
             if (squadObjective.Status == ObjectiveState.Wait) continue;
 
-            DebugLog.Write($"{agent} reached squad objective {squadObjective.Location}");
+            Log.Debug($"{agent} reached squad objective {squadObjective.Location}");
             var waitDuration = _guardDuration.SampleGaussian();
             squadObjective.Status = ObjectiveState.Wait;
             ResetDuration(squadObjective, waitDuration);
-            DebugLog.Write($"{squad} engaging wait mode for {waitDuration} seconds");
+            Log.Debug($"{squad} engaging wait mode for {waitDuration} seconds");
         }
 
         return finishedCount;
@@ -161,7 +161,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
 
         if (newLocation == null)
         {
-            DebugLog.Write($"{squad} received null objective location");
+            Log.Debug($"{squad} received null objective location");
             return;
         }
 
@@ -170,7 +170,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
         squad.Objective.Status = ObjectiveState.Active;
         ResetDuration(squad.Objective, _moveTimeout.SampleGaussian());
 
-        DebugLog.Write($"{squad} assigned objective {squad.Objective.Location}");
+        Log.Debug($"{squad} assigned objective {squad.Objective.Location}");
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

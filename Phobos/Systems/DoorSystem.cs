@@ -13,6 +13,6 @@ public class DoorSystem
     {
         var interactables = Object.FindObjectsOfType<WorldInteractiveObject>();
         Doors = interactables.Where(interactable => interactable.Collider != null).OfType<Door>().ToArray();
-        DebugLog.Write($"Found {Doors.Length} doors on the map");
+        Log.Debug($"Found {Doors.Length} doors on the map");
     }
 }

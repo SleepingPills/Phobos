@@ -67,7 +67,7 @@ public class PhobosLayer : CustomLayer
         if (layer.Name() == LayerName)
         {
             // Stop the canned bot mover
-            DebugLog.Write($"{_agent} stopping builtin bot mover");
+            Log.Debug($"{_agent} stopping builtin bot mover");
             _agent.Bot.Mover.Stop();
             _agent.IsActive = true;
         }
@@ -76,13 +76,13 @@ public class PhobosLayer : CustomLayer
             if (_agent.IsActive)
             {
                 // Final insurance that the bot is set to the navmwesh before we hand over the brain
-                DebugLog.Write($"{_agent} setting player to navmesh");
+                Log.Debug($"{_agent} setting player to navmesh");
                 _agent.Bot.Mover.SetPlayerToNavMesh(_agent.Position);
                 _agent.IsActive = false;
             }
         }
 
-        DebugLog.Write($"{_agent} layer changed to: {layer.Name()} priority: {layer.Priority}");
+        Log.Debug($"{_agent} layer changed to: {layer.Name()} priority: {layer.Priority}");
     }
 
     public override string GetName()

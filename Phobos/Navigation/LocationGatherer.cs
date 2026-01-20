@@ -19,7 +19,7 @@ public class LocationGatherer(float cellSize)
     {
         var collection = new List<Location>();
 
-        DebugLog.Write("Collecting quests POIs");
+        Log.Debug("Collecting quests POIs");
 
         _idCounter = 0;
 
@@ -31,7 +31,7 @@ public class LocationGatherer(float cellSize)
             ValidateAndAddLocation(collection, LocationCategory.Quest, trigger.name, trigger.transform.position);
         }
 
-        DebugLog.Write("Collecting loot POIs");
+        Log.Debug("Collecting loot POIs");
 
         foreach (var container in Object.FindObjectsOfType<LootableContainer>())
         {
@@ -41,7 +41,7 @@ public class LocationGatherer(float cellSize)
             ValidateAndAddLocation(collection, LocationCategory.ContainerLoot, container.name, container.transform.position);
         }
 
-        DebugLog.Write("Collecting exfil POIs");
+        Log.Debug("Collecting exfil POIs");
 
         var uniqueExfils = new HashSet<Exfil>();
         
@@ -56,15 +56,15 @@ public class LocationGatherer(float cellSize)
             uniqueExfils.Add(new Exfil(point));
         }
 
-        DebugLog.Write($"Found {uniqueExfils.Count} exfils");
+        Log.Debug($"Found {uniqueExfils.Count} exfils");
 
         foreach (var exfil in uniqueExfils)
         {
-            DebugLog.Write($"Trying to add exfil {exfil.Point.name} with ID {exfil.Point.Id}");
+            Log.Debug($"Trying to add exfil {exfil.Point.name} with ID {exfil.Point.Id}");
             ValidateAndAddLocation(collection, LocationCategory.Exfil, exfil.Point.name, exfil.Point.transform.position, 5f);
         }
 
-        DebugLog.Write($"Collected {collection.Count} points of interest");
+        Log.Debug($"Collected {collection.Count} points of interest");
         
         Shuffle(collection);
 
@@ -89,7 +89,7 @@ public class LocationGatherer(float cellSize)
         }
         else
         {
-            DebugLog.Write($"Skipping Location({category}, {name}, {position}), too far from navmesh");
+            Log.Debug($"Skipping Location({category}, {name}, {position}), too far from navmesh");
         }
     }
 

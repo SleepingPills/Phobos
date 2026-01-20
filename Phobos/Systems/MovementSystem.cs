@@ -246,7 +246,7 @@ public class MovementSystem
             // We retry pathing above if the last corner doesn't reach far enough, here just check whether we reached that corner.
             if ((movement.Path[movement.CurrentCorner] - agent.Player.Position).sqrMagnitude <= TargetEpsSqr)
             {
-                DebugLog.Write($"{agent} destination reached");
+                Log.Debug($"{agent} destination reached");
                 // Don't reset the target here. Our target hasn't changed, we just reached it. 
                 ResetPath(agent);
                 return;
@@ -434,12 +434,12 @@ public class MovementSystem
             {
                 // Apply remediation based on stuck duration
                 case SoftStuckStatus.None when stuck.Timer >= VaultAttemptDelay:
-                    DebugLog.Write($"{agent} is stuck, attempting to vault.");
+                    Log.Debug($"{agent} is stuck, attempting to vault.");
                     stuck.Status = SoftStuckStatus.Vaulting;
                     agent.Player.MovementContext?.TryVaulting();
                     break;
                 case SoftStuckStatus.Vaulting when stuck.Timer >= JumpAttemptDelay:
-                    DebugLog.Write($"{agent} is stuck, attempting to jump.");
+                    Log.Debug($"{agent} is stuck, attempting to jump.");
                     stuck.Status = SoftStuckStatus.Jumping;
                     agent.Player.MovementContext?.TryJump();
                     break;
@@ -527,17 +527,17 @@ public class MovementSystem
             switch (stuck.Status)
             {
                 case HardStuckStatus.None when stuck.Timer >= PathRetryDelay:
-                    DebugLog.Write($"{agent} is hard stuck, attempting to recalculate path.");
+                    Log.Debug($"{agent} is hard stuck, attempting to recalculate path.");
                     stuck.Status = HardStuckStatus.Retrying;
                     movementSystem.MoveRetry(agent, agent.Movement.Target);
                     break;
                 case HardStuckStatus.Retrying when stuck.Timer >= TeleportDelay:
-                    DebugLog.Write($"{agent} is hard stuck, attempting to teleport.");
+                    Log.Debug($"{agent} is hard stuck, attempting to teleport.");
                     stuck.Status = HardStuckStatus.Teleport;
                     AttemptTeleport(agent);
                     break;
                 case HardStuckStatus.Teleport when stuck.Timer >= FailedDelay:
-                    DebugLog.Write($"{agent} is hard stuck, giving up.");
+                    Log.Debug($"{agent} is hard stuck, giving up.");
                     stuck.Status = HardStuckStatus.Failed;
                     ResetPath(agent, MovementStatus.Failed);
                     break;
@@ -569,7 +569,7 @@ public class MovementSystem
             {
                 var player = humanPlayers[i];
 
-                if (!player.HealthController.IsAlive)
+                if (player?.HealthController is not { IsAlive: true })
                 {
                     continue;
                 }
@@ -577,7 +577,7 @@ public class MovementSystem
                 // Don't allow teleports when a human player is closer than 10m
                 if ((player.Position - agent.Position).sqrMagnitude <= 100f)
                 {
-                    DebugLog.Write($"{agent} teleport proximity check failed: {player.Profile.Nickname} too close");
+                    Log.Debug($"{agent} teleport proximity check failed: {player.Profile.Nickname} too close");
                     return;
                 }
 
@@ -592,7 +592,7 @@ public class MovementSystem
                     // If we don't hit anything solid on the way to the destination, we assume it's visible
                     if (Physics.Linecast(humanHeadPos, bodyPart.transform.position, out _, LayerMaskVisCheck.value)) continue;
 
-                    DebugLog.Write(
+                    Log.Debug(
                         $"{agent} teleport vis check failed: player {player.Profile.Nickname} can see body part {bodyPart.BodyPartColliderType}"
                     );
 
@@ -603,7 +603,7 @@ public class MovementSystem
             var teleportPos = agent.Movement.Path[agent.Movement.CurrentCorner];
             teleportPos.y += 0.25f;
             agent.Player.Teleport(teleportPos);
-            DebugLog.Write($"{agent} teleporting to {teleportPos}");
+            Log.Debug($"{agent} teleporting to {teleportPos}");
         }
     }
 }

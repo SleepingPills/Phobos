@@ -30,7 +30,7 @@ public class BotMoverSoftTeleportLogPatch : ModulePatch
         // DebugGizmos.Line(botPosition - 500f * Vector3.up, botPosition + 500f * Vector3.up, color: Color.yellow, lineWidth: 0.1f, expiretime: 0f);
         // DebugGizmos.Line(rPosition - 500f * Vector3.up, rPosition + 500f * Vector3.up, color: Color.yellow, lineWidth: 0.1f, expiretime: 0f);
 
-        DebugLog.Write(
+        Log.Debug(
             $"BotMover.teleport id: {__instance.BotOwner_0.Id} role: {__instance.BotOwner_0.GetPlayer.Profile?.Info?.Settings?.Role} name: {__instance.BotOwner_0.GetPlayer.Profile?.Nickname} {new StackTrace(true)}"
         );
     }
@@ -60,7 +60,7 @@ public class BotMoverHardTeleportLogPatch : ModulePatch
         // DebugGizmos.Line(botPosition - 500f * Vector3.up, botPosition + 500f * Vector3.up, color: Color.magenta, lineWidth: 0.1f, expiretime: 0f);
         // DebugGizmos.Line(posiblePos - 500f * Vector3.up, posiblePos + 500f * Vector3.up, color: Color.magenta, lineWidth: 0.1f, expiretime: 0f);
 
-        DebugLog.Write(
+        Log.Debug(
             $"BotMover.method_10 distance: {sqrDist} id: {__instance.BotOwner_0.Id} role: {__instance.BotOwner_0.GetPlayer.Profile?.Info?.Settings?.Role} name: {__instance.BotOwner_0.GetPlayer.Profile?.Nickname} {new StackTrace(true)}"
         );
     }
