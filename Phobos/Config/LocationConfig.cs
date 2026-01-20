@@ -52,19 +52,19 @@ public class LocationConfig
     {
         public static readonly Dictionary<string, MapGeometry> MapGeometries = new()
         {
-            { "bigmap", new MapGeometry(new Vector2(-372, -306), new Vector2(698, 235), 50) },
+            { "bigmap", new MapGeometry(new Vector2(-372, -306), new Vector2(698, 235), 75) },
             { "factory4_day", new MapGeometry(new Vector2(-65, -65f), new Vector2(78, 68), 25) },
             { "factory4_night", new MapGeometry(new Vector2(-65, -65f), new Vector2(78, 68), 25) },
-            { "Sandbox", new MapGeometry(new Vector2(-99, -124), new Vector2(249, 364), 35) },
-            { "Sandbox_high", new MapGeometry(new Vector2(-99, -124), new Vector2(249, 364), 35) },
-            { "Interchange", new MapGeometry(new Vector2(-364, -443), new Vector2(534, 452), 50) },
-            { "laboratory", new MapGeometry(new Vector2(-292, -441), new Vector2(96, 223), 25) },
+            { "Sandbox", new MapGeometry(new Vector2(-99, -124), new Vector2(249, 364), 50) },
+            { "Sandbox_high", new MapGeometry(new Vector2(-99, -124), new Vector2(249, 364), 50) },
+            { "Interchange", new MapGeometry(new Vector2(-364, -443), new Vector2(534, 452), 75) },
+            { "laboratory", new MapGeometry(new Vector2(-292, -441), new Vector2(96, 223), 50) },
             { "Labyrinth", new MapGeometry(new Vector2(-53, -37), new Vector2(51, 76), 25) },
-            { "Lighthouse", new MapGeometry(new Vector2(-545, -998), new Vector2(512, 721), 75) },
-            { "RezervBase", new MapGeometry(new Vector2(-304, -275), new Vector2(292, 272), 35) },
-            { "Shoreline", new MapGeometry(new Vector2(-1060, -415), new Vector2(508, 622), 75) },
+            { "Lighthouse", new MapGeometry(new Vector2(-545, -998), new Vector2(512, 721), 100) },
+            { "RezervBase", new MapGeometry(new Vector2(-304, -275), new Vector2(292, 272), 50) },
+            { "Shoreline", new MapGeometry(new Vector2(-1060, -415), new Vector2(508, 622), 100) },
             { "TarkovStreets", new MapGeometry(new Vector2(-279, -299), new Vector2(324, 533), 50) },
-            { "Woods", new MapGeometry(new Vector2(-756, -915), new Vector2(647, 443), 75) },
+            { "Woods", new MapGeometry(new Vector2(-756, -915), new Vector2(647, 443), 100) },
         };
 
         public static readonly Dictionary<string, MapZone> MapZones = new()
