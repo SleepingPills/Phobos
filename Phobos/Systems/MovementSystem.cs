@@ -158,7 +158,28 @@ public class MovementSystem
         var bot = agent.Bot;
         var player = agent.Player;
         var movement = agent.Movement;
+        
+        // The pose must be updated even if we aren't moving
+        var poseDelta = movement.Pose - player.PoseLevel;
+        if (Math.Abs(poseDelta) > 1e-2)
+        {
+            bot.SetPose(movement.Pose);
+            // player.ChangePose(poseDelta);
+        }
 
+        if (bot.BotLay.IsLay != movement.Prone)
+        {
+            if (movement.Prone)
+            {
+                bot.BotLay.TryLay();
+            }
+            else
+            {
+                bot.BotLay.GetUp(true);
+            }
+        }
+
+        // Actual movement logic below
         if (!movement.HasPath || movement.Status == MovementStatus.Failed || movement.Status == MovementStatus.Stopped)
             return;
 
@@ -190,27 +211,6 @@ public class MovementSystem
         if (player.Physical.Sprinting != shouldSprint)
         {
             player.EnableSprint(shouldSprint);
-        }
-
-        // Pose
-        var poseDelta = movement.Pose - player.PoseLevel;
-        if (Math.Abs(poseDelta) > 1e-2)
-        {
-            bot.SetPose(movement.Pose);
-            // player.ChangePose(poseDelta);
-        }
-
-        // Prone
-        if (bot.BotLay.IsLay != movement.Prone)
-        {
-            if (movement.Prone)
-            {
-                bot.BotLay.TryLay();
-            }
-            else
-            {
-                bot.BotLay.GetUp(true);
-            }
         }
 
         // Run stuck remediation before movement logic
