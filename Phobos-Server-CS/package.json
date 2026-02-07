@@ -1,0 +1,11 @@
+{
+    "name": "Phobos Server",
+    "version": "1.0.0",
+    "author": "Janky-Phobos",
+    "license": "MIT",
+    "main": "Phobos-Server.dll",
+    "isBundleMod": false,
+    "dependencies": {
+        "SPT": ">=4.0.0"
+    }
+}

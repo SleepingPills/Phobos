@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="SPT.Server">
+      <HintPath>/home/admin571397/Games/escape-from-tarkov/drive_c/EFT/SPT/SPT.Server.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SPTarkov.Server.Core">
+      <HintPath>/home/admin571397/Games/escape-from-tarkov/drive_c/EFT/SPT/SPTarkov.Server.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+     <Reference Include="spt-common">
+      <HintPath>/home/admin571397/Games/escape-from-tarkov/drive_c/EFT/BepInEx/plugins/spt/spt-common.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="spt-reflection">
+      <HintPath>/home/admin571397/Games/escape-from-tarkov/drive_c/EFT/BepInEx/plugins/spt/spt-reflection.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SemanticVersioning">
+      <HintPath>/home/admin571397/Games/escape-from-tarkov/drive_c/EFT/SPT/SemanticVersioning.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SPTarkov.Server.Web">
+      <HintPath>/home/admin571397/Games/escape-from-tarkov/drive_c/EFT/SPT/SPTarkov.Server.Web.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SPTarkov.DI">
+      <HintPath>/home/admin571397/Games/escape-from-tarkov/drive_c/EFT/SPT/SPTarkov.DI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+</Project>
