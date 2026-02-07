@@ -85,6 +85,12 @@ namespace Phobos.Looting.Components
 
         public void ForceScan()
         {
+            // Don't force scan if we're already set to scan immediately or scanning is running
+            if (ScanTimer < Time.time || IsScanRunning)
+            {
+                return;
+            }
+
             ScanTimer = Time.time - 1f;
             LockUntilNextScan = true;
             _lootingBrain.ForceBrainEnabled = true;

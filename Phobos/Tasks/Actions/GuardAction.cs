@@ -67,7 +67,6 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
             var lootFinder = entity.Bot.GetPlayer.gameObject.GetComponent<LootFinder>();
             if (lootFinder != null)
             {
-                Plugin.Log.LogInfo($"[GuardAction] ForceScan triggered for {entity.Bot.Profile.Nickname}");
                 lootFinder.ForceScan();
             }
             else

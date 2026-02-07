@@ -18,9 +18,11 @@ namespace Phobos.Looting.Patches
         [PatchPostfix]
         private static void Postfix(WorldInteractiveObject __instance, InteractionResult interactionResult)
         {
-            // Only trigger if a door was opened or unlocked
-            if (__instance is Door && (interactionResult.InteractionType == EInteractionType.Open || interactionResult.InteractionType == EInteractionType.Unlock))
+            // Only force a scan when a door is actually OPENED, not just unlocked.
+            // If we scan on unlock, the door is still closed and line-of-sight checks will fail.
+            if (__instance is Door door && interactionResult.InteractionType == EInteractionType.Open)
             {
+                // Optional: Check if door was locked to be more specific, but generally any door open is a good time to re-scan.
                 // Iterate through active loot finders and force scan if close
                 foreach (var finder in LootingSystem.ActiveLootFinders)
                 {

@@ -77,7 +77,6 @@ namespace Phobos.Looting.Utilities
 
         public static bool IsBotEnabled(this BotType enabledTypes, WildSpawnType botType)
         {
-            // Temporary Debug Logging
             bool isPmc = IsPMC(botType);
             bool isBoss = IsBoss(botType);
             bool result = false;
@@ -138,13 +137,6 @@ namespace Phobos.Looting.Utilities
                 }
             }
 
-            if (result && !enabledTypes.HasScav() && !isPmc) // Log for non-common bots to reduce spam, or just log everything if needed.
-            {
-                // We can't easily access the logger here without passing it, but Console.WriteLine might work or we rely on the caller to log.
-                // Since this is an extension method, let's keep it clean and just return the result, 
-                // but we will modify LootFinder to log this info.
-            }
-            
             return result;
         }
 
