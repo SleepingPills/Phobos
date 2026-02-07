@@ -1,6 +1,8 @@
 ﻿using Phobos.Data;
 using Phobos.Entities;
 using Phobos.Systems;
+using Phobos.Looting.Components;
+using Phobos.Navigation;
 using UnityEngine;
 
 namespace Phobos.Tasks.Actions;
@@ -58,6 +60,21 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
     public override void Activate(Agent entity)
     {
         base.Activate(entity);
+
+        // Force a scan if we are arriving at a loot location
+        if (entity.Objective?.Location?.Category == LocationCategory.ContainerLoot || entity.Objective?.Location?.Category == LocationCategory.LooseLoot)
+        {
+            var lootFinder = entity.Bot.GetPlayer.gameObject.GetComponent<LootFinder>();
+            if (lootFinder != null)
+            {
+                Plugin.Log.LogInfo($"[GuardAction] ForceScan triggered for {entity.Bot.Profile.Nickname}");
+                lootFinder.ForceScan();
+            }
+            else
+            {
+                Plugin.Log.LogError($"[GuardAction] lootFinder is NULL for {entity.Bot.Profile.Nickname}!");
+            }
+        }
 
         if (entity.Guard.CoverPoint == null)
         {
