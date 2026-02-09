@@ -117,6 +117,7 @@ public class PhobosManager
         LookSystem.Update(_liveAgents);
         
         NavJobExecutor.Update();
+        Looting.LootingSystem.OnUpdate();
     }
 
     private void RegisterComponents()

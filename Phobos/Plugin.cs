@@ -14,11 +14,13 @@ using Phobos.Enums;
 using Phobos.Orchestration;
 using Phobos.Patches;
 using UnityEngine;
+using LootingSystemController = Phobos.Looting.LootingSystem;
 
 namespace Phobos;
 
 [BepInPlugin("com.janky.phobos", "Janky-Phobos", PhobosVersion)]
 [BepInDependency("xyz.drakia.waypoints")]
+[BepInDependency("xyz.drakia.bigbrain", "1.3.2")]
 [SuppressMessage("ReSharper", "HeapView.ObjectAllocation.Evident")]
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 public class Plugin : BaseUnityPlugin
@@ -108,6 +110,17 @@ public class Plugin : BaseUnityPlugin
         };
 
         BrainManager.AddCustomLayer(typeof(PhobosLayer), brains, 19);
+
+        try
+        {
+            Log.LogInfo("Attempting to initialize LootingSystem...");
+            LootingSystemController.Init(Config, Log);
+            Log.LogInfo("LootingSystem initialized successfully.");
+        }
+        catch (Exception ex)
+        {
+            Log.LogError($"Failed to initialize LootingSystem: {ex}");
+        }
     }
 
     private void SetupConfig()
@@ -284,5 +297,11 @@ public class Plugin : BaseUnityPlugin
 
             Destroy(telemetry);
         }
+    }
+
+
+    private void Update()
+    {
+        LootingSystemController.OnUpdate();
     }
 }
