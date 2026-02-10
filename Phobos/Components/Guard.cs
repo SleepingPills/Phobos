@@ -1,11 +1,12 @@
-﻿using Phobos.Navigation;
+﻿using System.Collections.Generic;
+using Phobos.Navigation;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 
 namespace Phobos.Components;
 
-public struct OverwatchJob
+public struct AreaSweepJob
 {
     public JobHandle Handle;
     public NativeArray<RaycastCommand> Commands;
@@ -16,19 +17,20 @@ public enum GuardState
 {
     None,
     Moving,
-    Watching
+    Sweep,
+    Watch,
 }
 
 public class Guard
 {
+    public GuardState State;
     public CoverPoint? CoverPoint;
-    public OverwatchJob? OverwatchJob;
-    public Vector3? WatchDirection;
-    public float SweepAngle;
+    public AreaSweepJob? AreaSweepJob;
     public float WatchTimeout;
+    public readonly List<Vector3> WatchDirections = [];
 
     public override string ToString()
     {
-        return $"{nameof(Guard)}({CoverPoint})";
+        return $"{nameof(Guard)}({CoverPoint}, state: {State} directions: {WatchDirections.Count})";
     }
 }

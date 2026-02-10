@@ -35,7 +35,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
         if (entity.Objective.Location == null) return;
 
         // If we have an objective, reset the timer on activation
-        var timeout = entity.Objective.Status == ObjectiveState.Wait
+        var timeout = entity.Objective.Status == SquadObjectiveState.Wait
             ? _guardDuration.SampleGaussian()
             : _moveTimeout.SampleGaussian();
 
@@ -67,7 +67,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
 
             if (finishedCount == squad.Size)
             {
-                if (squadObjective.Status == ObjectiveState.Active)
+                if (squadObjective.Status == SquadObjectiveState.Active)
                 {
                     Log.Debug($"{squad} all members failed their objective en-route, requesting new assignment");
                     AssignNewObjective(squad);
@@ -149,11 +149,11 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
 
             finishedCount++;
 
-            if (squadObjective.Status == ObjectiveState.Wait) continue;
+            if (squadObjective.Status == SquadObjectiveState.Wait) continue;
 
             Log.Debug($"{agent} reached squad objective {squadObjective.Location}");
             var waitDuration = _guardDuration.SampleGaussian();
-            squadObjective.Status = ObjectiveState.Wait;
+            squadObjective.Status = SquadObjectiveState.Wait;
             ResetDuration(squadObjective, waitDuration);
             Log.Debug($"{squad} engaging wait mode for {waitDuration} seconds");
         }
@@ -175,7 +175,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
 
         objective.LocationPrevious = objective.Location;
         objective.Location = newLocation;
-        objective.Status = ObjectiveState.Active;
+        objective.Status = SquadObjectiveState.Active;
         
         ShufflePickCoverPoints(objective, squad.TargetMembersCount);
         

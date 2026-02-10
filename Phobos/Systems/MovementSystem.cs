@@ -120,6 +120,7 @@ public class MovementSystem
 
         if (agent.Movement.Retry >= RetryLimit)
         {
+            Log.Debug($"{agent} movement failed due to exhausting the retry limits");
             agent.Movement.Status = MovementStatus.Failed;
             return;
         }
@@ -140,6 +141,7 @@ public class MovementSystem
     {
         if (job.Status == NavMeshPathStatus.PathInvalid)
         {
+            Log.Debug($"{agent} movement failed due to an invalid path");
             agent.Movement.Target = job.Target;
             ResetPath(agent, MovementStatus.Failed);
             return;
@@ -264,7 +266,7 @@ public class MovementSystem
                     return;
                 }
                 
-                Log.Debug($"{agent} destination reached");
+                Log.Debug($"{agent} movement destination reached");
                 // Don't reset the target here. Our target hasn't changed, we just reached it. 
                 ResetPath(agent);
                 return;
@@ -369,9 +371,13 @@ public class MovementSystem
         };
 
         var bot = agent.Bot;
+        // Don't run indoors (prevalence of complex geometry)
         var isOutside = bot.AIData.EnvironmentId == 0;
+        // Check if the bot is able to sprint at all
         var isAbleToSprint = bot.GetPlayer.MovementContext.CanSprint;
+        // Only sprint if there's no explicit look target
         var isFreeLook = agent.Look.Target == null;
+        // Prevent sprinting through complex paths.
         var isPathSmooth = PathHelper.CalculatePathAngleJitter(agent.Movement.Path, agent.Movement.CurrentCorner, 10f) < angleJitterLimit;
 
         return isOutside && isAbleToSprint && isFreeLook && isPathSmooth;

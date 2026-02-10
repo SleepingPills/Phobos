@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Phobos.Components.Squad;
 
-public enum ObjectiveState
+public enum SquadObjectiveState
 {
     Active,
     Wait
@@ -16,7 +16,7 @@ public class SquadObjective
     public Location LocationPrevious;
     public readonly List<CoverPoint> CoverPoints = [];
     
-    public ObjectiveState Status = ObjectiveState.Wait;
+    public SquadObjectiveState Status = SquadObjectiveState.Wait;
 
     public float StartTime;
     public float Duration;

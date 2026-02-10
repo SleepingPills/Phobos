@@ -87,7 +87,11 @@ public class LocationGatherer(float cellSize, BotsController botsController)
             CollectSyntheticCoverData(coverData.CoverPoints, position, radius, extraPoints);
         }
         
-        Log.Debug($"Location {category}:{name} has {coverData.Doors.Count} doors and {coverData.CoverPoints.Count} cover points in proximity");
+        if (coverData.CoverPoints.Count == 0)
+        {
+            Log.Debug($"Location {category}:{name} has 0 cover points in proximity");
+        }
+        
         var location = new Location(_idCounter, category, name, position, radiusSqr, coverData.Doors, coverData.CoverPoints);
         _idCounter++;
         return location;
@@ -113,7 +117,10 @@ public class LocationGatherer(float cellSize, BotsController botsController)
             CollectSyntheticCoverData(coverData.CoverPoints, position, radius, extraPoints);
         }
         
-        Log.Debug($"Location {category}:{name} has {coverData.Doors.Count} doors and {coverData.CoverPoints.Count} cover points in proximity");
+        if (coverData.CoverPoints.Count == 0)
+        {
+            Log.Debug($"Location {category}:{name} has 0 cover points in proximity");
+        }
 
         var radiusSqr = radius * radius;
         var location = new Location(_idCounter, category, name, position, radiusSqr, coverData.Doors, coverData.CoverPoints);
@@ -182,7 +189,7 @@ public class LocationGatherer(float cellSize, BotsController botsController)
                     continue;
                 }
                 
-                if (!IsReachable(position, groupPoint.Position, radius))
+                if (!IsReachable(position, groupPoint.Position, innerRadius))
                 {
                     continue;
                 }
@@ -219,7 +226,7 @@ public class LocationGatherer(float cellSize, BotsController botsController)
                 continue;
             }
 
-            if (!IsReachable(locationPosition, target.position, radius))
+            if (!IsReachable(locationPosition, target.position, innerRadius))
             {
                 continue;
             }

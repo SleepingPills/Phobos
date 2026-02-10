@@ -64,7 +64,7 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
                 objective.ArrivalPath = agent.Movement.Path;
             }
             
-            // Target hysteresis: skip new move orders if the objective deviates from the target by less than the move system epsilon
+            // Target hysteresis: move orders within range of the desired destination count as correct
             if (MovementSystem.IsMovementTargetCurrent(agent, objective.Location.Position))
             {
                 // Stop sprinting within 2x the radius (2*2 when squared)

@@ -23,4 +23,10 @@ public static class Log
     {
         Plugin.Log.LogWarning($"F{Time.frameCount}: {message}");
     }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Error(string message)
+    {
+        Plugin.Log.LogError($"F{Time.frameCount}: {message}");
+    }
 }

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Phobos.Components;
 using Phobos.Data;
@@ -8,6 +9,7 @@ using Phobos.Navigation;
 using Phobos.Systems;
 using Unity.Collections;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace Phobos.Tasks.Actions;
 
@@ -16,9 +18,11 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
     private const float UtilityBoost = 0.45f;
     private const float UtilityBase = 0.2f;
     private const float InnerRadiusRatio = 0.95f * 0.95f;
+    private const float SweepAngle = 45f;
     private const int MaxWatchCandidateCount = 25;
 
-    private readonly List<Vector3> _watchCandidates = [];
+    private readonly List<Vector3> _candidateBuffer = [];
+    private readonly List<ValueTuple<float, Vector3>> _sortBuffer = [];
 
     public override void UpdateScore(int ordinal)
     {
@@ -47,48 +51,63 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
         for (var i = 0; i < ActiveEntities.Count; i++)
         {
             var agent = ActiveEntities[i];
+            var guard = agent.Guard;
 
-            if (agent.Guard.CoverPoint == null)
+            if (guard.CoverPoint == null)
             {
                 continue;
             }
 
-            var coverPoint = agent.Guard.CoverPoint.Value;
+            var coverPoint = guard.CoverPoint.Value;
 
-            if (MovementSystem.IsMovementTargetCurrent(agent, coverPoint.Position))
+            switch (agent.Guard.State)
             {
-                if (agent.Movement.Status == MovementStatus.Moving) continue;
+                case GuardState.None:
+                    movementSystem.MoveToByPath(agent, coverPoint.Position, sprint: true, urgency: MovementUrgency.Low);
+                    guard.State = GuardState.Moving;
+                    Log.Debug($"{agent} guarding: moving to cover point");
+                    break;
+                case GuardState.Moving:
+                    if (agent.Movement.Status == MovementStatus.Moving) continue;
 
-                // If we are no longer moving, crouch
-                if (agent.Movement.Pose > 0.3f && (coverPoint.Level != CoverLevel.Stay || Random.value > 0.5f))
-                {
-                    MovementSystem.ResetGait(agent, pose: 0.25f);
-                }
+                    // If we are no longer moving, crouch and submit the area sweep job
+                    if (agent.Movement.Pose > 0.3f && (coverPoint.Level != CoverLevel.Stay || Random.value > 0.5f))
+                    {
+                        MovementSystem.ResetGait(agent, pose: 0.25f);
+                    }
 
-                if (agent.Guard.OverwatchJob == null)
-                {
-                    SubmitOverwatchJob(agent, coverPoint);
-                    Log.Debug($"{agent} submitted overwatch job");
-                    continue;
-                }
+                    SubmitAreaSweepJob(agent, coverPoint);
+                    guard.State = GuardState.Sweep;
+                    Log.Debug($"{agent} guarding: submitted area sweep job");
+                    break;
+                case GuardState.Sweep:
+                    if (guard.AreaSweepJob == null)
+                    {
+                        continue;
+                    }
 
-                if (agent.Guard.WatchDirection == null)
-                {
-                    CompleteOverwatchJob(agent, agent.Guard.OverwatchJob.Value);
-                    Log.Debug($"{agent} completed overwatch job, sweep angle: {agent.Guard.SweepAngle}");
-                }
+                    CompleteAreaSweepJob(guard, guard.AreaSweepJob.Value);
+                    guard.State = GuardState.Watch;
+                    Log.Debug($"{agent} guarding: completed area sweep job");
+                    break;
+                case GuardState.Watch:
+                    if (guard.WatchDirections.Count == 0 || guard.WatchTimeout > Time.time)
+                    {
+                        continue;
+                    }
 
-                if (agent.Guard.WatchDirection == null || agent.Guard.WatchTimeout > Time.time)
-                {
-                    continue;
-                }
-                
-                ObserveDirection(agent, agent.Guard.WatchDirection.Value);
-                Log.Debug($"{agent} changed observe direction timeout: {agent.Guard.WatchTimeout - Time.time}");
-            }
-            else
-            {
-                movementSystem.MoveToByPath(agent, coverPoint.Position, sprint: true, urgency: MovementUrgency.Low);
+                    var direction = guard.WatchDirections[Random.Range(0, guard.WatchDirections.Count)];
+                    var randomDirection = LookSystem.RandomDirectionInEllipse(direction, SweepAngle, 15f);
+                    LookSystem.LookToDirection(agent, randomDirection, 60f);
+                    guard.WatchTimeout = Time.time + Random.Range(2.5f, 10f);
+
+                    DebugGizmos.Line(
+                        agent.Player.PlayerBones.Head.position, agent.Player.PlayerBones.Head.position + 25f * randomDirection, color: Color.red
+                    );
+                    Log.Debug($"{agent} guarding: set new watch direction");
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
             }
         }
     }
@@ -96,93 +115,121 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
     protected override void Deactivate(Agent entity)
     {
         var guard = entity.Guard;
-        
-        guard.OverwatchJob = null;
-        guard.WatchDirection = null;
+
+        guard.State = GuardState.None;
+        guard.AreaSweepJob = null;
+        guard.WatchDirections.Clear();
         guard.WatchTimeout = 0f;
-        
+
         entity.Look.Target = null;
     }
 
-    private void SubmitOverwatchJob(Agent agent, CoverPoint coverPoint)
+    private void SubmitAreaSweepJob(Agent agent, CoverPoint coverPoint)
     {
         var origin = agent.Player.PlayerBones.Head.position;
 
-        _watchCandidates.Clear();
+        _candidateBuffer.Clear();
 
         if (coverPoint.Category == CoverCategory.Hard)
         {
-            _watchCandidates.Add(-1 * coverPoint.Direction);
+            _candidateBuffer.Add(-1 * coverPoint.Direction);
 
             // If it's not standing cover, also try to look in direction of the wall
             if (coverPoint.Level != CoverLevel.Stay)
             {
-                _watchCandidates.Add(coverPoint.Direction);
+                _candidateBuffer.Add(coverPoint.Direction);
             }
         }
-        
+
+        // The vertical position of objectives can result in jank directions relative to the origin. Force it to be in the same elevation.
+        var coplanarObjective = new Vector3(agent.Objective.Location.Position.x, origin.y, agent.Objective.Location.Position.z);
+        var objectiveVector = coplanarObjective - origin;
+        objectiveVector.Normalize();
+
+        DebugGizmos.Line(origin, origin - 25f * objectiveVector, expiretime: 0f, color: Color.yellow);
+
+        // Add vector to and away from the objective
+        _candidateBuffer.Add(objectiveVector);
+        _candidateBuffer.Add(-objectiveVector);
+
         // Radial sweep
         const float angleStep = 360f / 10f;
 
         var forward = agent.Player.Transform.forward;
-        
-        for (var i = 0; i < 10; i++)
+
+        for (var i = 0; i < 6; i++)
         {
             var angle = i * angleStep;
             var rotation = Quaternion.AngleAxis(angle, Vector3.up);
             var direction = rotation * forward;
-            
-            DebugGizmos.Line(agent.Position + Vector3.up, agent.Position + Vector3.up + 25f * direction, expiretime: 0f, color: Color.magenta);
-            _watchCandidates.Add(direction);
+            _candidateBuffer.Add(direction);
         }
 
         // Find all arrival path points
         if (agent.Objective.ArrivalPath != null)
         {
-            for (var i = agent.Objective.ArrivalPath.Length - 1; i >= 0; i--)
+            var cornerSweepCount = Math.Min(agent.Objective.ArrivalPath.Length, 10) + 1;
+            
+            for (var i = 1; i < cornerSweepCount; i++)
             {
-                if (_watchCandidates.Count >= MaxWatchCandidateCount)
+                if (_candidateBuffer.Count >= MaxWatchCandidateCount)
                 {
                     break;
                 }
 
-                var point = agent.Objective.ArrivalPath[i] + 1.5f * Vector3.up;
-                var dir = point - origin;
-                dir.Normalize();
-                _watchCandidates.Add(dir);
+                var target = agent.Objective.ArrivalPath[^i] + 1.5f * Vector3.up;
+                var direction = target - origin;
+                direction.Normalize();
+                _candidateBuffer.Add(direction);
+
+                DebugGizmos.Line(origin, target, expiretime: 0f, color: Color.magenta);
             }
         }
 
         // Find all nearby doors
         for (var i = 0; i < agent.Objective.Location.Doors.Count; i++)
         {
-            if (_watchCandidates.Count >= MaxWatchCandidateCount)
+            if (_candidateBuffer.Count >= MaxWatchCandidateCount)
             {
                 break;
             }
 
-            var door = agent.Objective.Location.Doors[i];
-            var doorVector = door.transform.position - origin;
-            doorVector.Normalize();
-            _watchCandidates.Add(doorVector);
+            var target = agent.Objective.Location.Doors[i].transform.position;
+            var direction = target - origin;
+            direction.Normalize();
+            _candidateBuffer.Add(direction);
+        }
+        
+        // Pad with nearby cover points
+        for (var i = 0; i < agent.Objective.Location.CoverPoints.Count; i++)
+        {
+            if (_candidateBuffer.Count >= MaxWatchCandidateCount)
+            {
+                break;
+            }
+
+            var target = agent.Objective.Location.CoverPoints[i].Position;
+            var direction = target - origin;
+            direction.Normalize();
+            _candidateBuffer.Add(direction);
         }
 
         // Allocate raycast commands and results
-        var commands = new NativeArray<RaycastCommand>(_watchCandidates.Count, Allocator.TempJob);
-        var results = new NativeArray<RaycastHit>(_watchCandidates.Count, Allocator.TempJob);
+        var commands = new NativeArray<RaycastCommand>(_candidateBuffer.Count, Allocator.TempJob);
+        var results = new NativeArray<RaycastHit>(_candidateBuffer.Count, Allocator.TempJob);
 
         // Set up raycast commands
-        for (var i = 0; i < _watchCandidates.Count; i++)
+        for (var i = 0; i < _candidateBuffer.Count; i++)
         {
-            var direction = _watchCandidates[i];
+            var direction = _candidateBuffer[i];
             var parameters = new QueryParameters { layerMask = LayerMasksDataAbstractClass.HitMask };
             commands[i] = new RaycastCommand(origin, direction, parameters, 100);
         }
-        
-        Log.Debug($"{agent} found {_watchCandidates.Count} watch candidates");
 
-        // Schedule and complete batch
-        agent.Guard.OverwatchJob = new OverwatchJob
+        Log.Debug($"{agent} found {_candidateBuffer.Count} watch candidates");
+
+        // Schedule the batch
+        agent.Guard.AreaSweepJob = new AreaSweepJob
         {
             Handle = RaycastCommand.ScheduleBatch(commands, results, 1),
             Commands = commands,
@@ -190,50 +237,45 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
         };
     }
 
-    private static void CompleteOverwatchJob(Agent agent, OverwatchJob job)
+    private void CompleteAreaSweepJob(Guard guard, AreaSweepJob job)
     {
         job.Handle.Complete();
 
-        var longest = -1f;
-        var pick = Vector3.zero;
-        
+        _sortBuffer.Clear();
+
         for (var i = 0; i < job.Hits.Length; i++)
         {
             var cmd = job.Commands[i];
             var hit = job.Hits[i];
-            
+
             var distance = hit.collider == null ? cmd.distance : hit.distance;
 
-            if (distance <= longest)
-            {
-                continue;
-            }
-            
-            longest = distance;
-            pick = cmd.direction;
+            _sortBuffer.Add(new(distance, cmd.direction));
         }
-        
+
         job.Commands.Dispose();
         job.Hits.Dispose();
+
+        _sortBuffer.Sort(Comparer.Instance);
+
+        // Pick the last 5 entries in the sort buffer
+        var limit = Math.Min(_sortBuffer.Count, 5) + 1;
         
-        // Fallback to looking away from the objective if all else fails
-        if (longest <= 0f)
+        for (var i = 1; i < limit; i++)
         {
-            pick = agent.Player.PlayerBones.Head.position - agent.Objective.Location.Position + Vector3.up;
-            pick.Normalize();
+            Log.Debug($"picked item direction: {_sortBuffer[i]}");
+            guard.WatchDirections.Add(_sortBuffer[^i].Item2);
         }
-        
-        agent.Guard.WatchDirection = pick;
-        agent.Guard.SweepAngle = 35f * (0.75f + 0.25f * Mathf.InverseLerp(50f, 0f, longest));
     }
 
-    private static void ObserveDirection(Agent agent, Vector3 watchDirection)
+    public sealed class Comparer : Comparer<ValueTuple<float, Vector3>>
     {
-        var randomDirection = LookSystem.RandomDirectionInEllipse(watchDirection, agent.Guard.SweepAngle, 15f);
-        LookSystem.LookToDirection(agent, randomDirection, 120f);
-        agent.Guard.WatchTimeout = Time.time + Random.Range(2.5f, 10f);
-        
-        DebugGizmos.Line(agent.Position + Vector3.up, agent.Position + Vector3.up + 25f * watchDirection, expiretime: 0f, color: Color.blue);
-        DebugGizmos.Line(agent.Position + Vector3.up, agent.Position + Vector3.up + 25f * randomDirection, expiretime: 0f, color: Color.red);
+        public static readonly Comparer Instance = new();
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public override int Compare(ValueTuple<float, Vector3> x, ValueTuple<float, Vector3> y)
+        {
+            return x.Item1.CompareTo(y.Item1);
+        }
     }
 }
