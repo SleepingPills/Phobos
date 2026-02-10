@@ -1,4 +1,5 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System;
+using System.Runtime.CompilerServices;
 using Phobos.Components;
 using Phobos.Components.Squad;
 using Phobos.Data;
@@ -7,6 +8,7 @@ using Phobos.Entities;
 using Phobos.Navigation;
 using Phobos.Systems;
 using UnityEngine;
+using Random = UnityEngine.Random;
 using Range = Phobos.Config.Range;
 
 namespace Phobos.Tasks.Strategies;
@@ -121,6 +123,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
             if (agentObjective.Location != squadObjective.Location)
             {
                 agentObjective.Location = squadObjective.Location;
+                agentObjective.Status = ObjectiveStatus.None;
                 
                 if (squadObjective.Location != null)
                 {
@@ -134,28 +137,33 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
             {
                 continue;
             }
-
-            if ((agentObjective.Location.Position - agent.Player.Position).sqrMagnitude > agentObjective.Location.RadiusSqr)
+            
+            switch (agent.Objective.Status)
             {
-                // If we are not in the objective radius, the movement target is current and the movement status failed, consider this objective finished
-                if (agent.Movement.Status == MovementStatus.Failed
-                    && MovementSystem.IsMovementTargetCurrent(agent, agentObjective.Location.Position))
+                case ObjectiveStatus.Failed:
+                    finishedCount++;
+                    break;
+                case ObjectiveStatus.Finished:
                 {
                     finishedCount++;
+
+                    if (squadObjective.Status == SquadObjectiveState.Wait)
+                    {
+                        break;
+                    }
+
+                    Log.Debug($"{agent} reached squad objective {squadObjective.Location}");
+                    var waitDuration = _guardDuration.SampleGaussian();
+                    squadObjective.Status = SquadObjectiveState.Wait;
+                    ResetDuration(squadObjective, waitDuration);
+                    Log.Debug($"{squad} engaging wait mode for {waitDuration} seconds");
+                    break;
                 }
-
-                continue;
+                case ObjectiveStatus.None:
+                case ObjectiveStatus.Moving:
+                default:
+                    break;
             }
-
-            finishedCount++;
-
-            if (squadObjective.Status == SquadObjectiveState.Wait) continue;
-
-            Log.Debug($"{agent} reached squad objective {squadObjective.Location}");
-            var waitDuration = _guardDuration.SampleGaussian();
-            squadObjective.Status = SquadObjectiveState.Wait;
-            ResetDuration(squadObjective, waitDuration);
-            Log.Debug($"{squad} engaging wait mode for {waitDuration} seconds");
         }
 
         return finishedCount;

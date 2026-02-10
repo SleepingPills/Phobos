@@ -13,7 +13,7 @@ public struct AreaSweepJob
     public NativeArray<RaycastHit> Hits;
 }
 
-public enum GuardState
+public enum GuardStatus
 {
     None,
     Moving,
@@ -23,7 +23,7 @@ public enum GuardState
 
 public class Guard
 {
-    public GuardState State;
+    public GuardStatus Status;
     public CoverPoint? CoverPoint;
     public AreaSweepJob? AreaSweepJob;
     public float WatchTimeout;
@@ -31,6 +31,6 @@ public class Guard
 
     public override string ToString()
     {
-        return $"{nameof(Guard)}({CoverPoint}, state: {State} directions: {WatchDirections.Count})";
+        return $"{nameof(Guard)}({CoverPoint}, status: {Status} directions: {WatchDirections.Count})";
     }
 }

@@ -1,4 +1,5 @@
-﻿using Phobos.Components;
+﻿using System;
+using Phobos.Components;
 using Phobos.Data;
 using Phobos.Diag;
 using Phobos.Entities;
@@ -22,14 +23,7 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
             var location = agent.Objective.Location;
             
             // If we don't have an objective or the movement failed
-            if (location == null)
-            {
-                agent.TaskScores[ordinal] = 0;
-                continue;
-            }
-
-            // If the movement failed and the target is up to date, there's nothing for us to do.  
-            if (agent.Movement.Status == MovementStatus.Failed && MovementSystem.IsMovementTargetCurrent(agent, location.Position))
+            if (location == null || agent.Objective.Status is ObjectiveStatus.Failed or ObjectiveStatus.Finished)
             {
                 agent.TaskScores[ordinal] = 0;
                 continue;
@@ -58,49 +52,44 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
                 continue;
             }
 
-            // Stash away the path we arrived by
-            if (agent.Movement.HasPath && objective.ArrivalPath != agent.Movement.Path)
+            switch (objective.Status)
             {
-                objective.ArrivalPath = agent.Movement.Path;
-            }
-            
-            // Target hysteresis: move orders within range of the desired destination count as correct
-            if (MovementSystem.IsMovementTargetCurrent(agent, objective.Location.Position))
-            {
-                // Stop sprinting within 2x the radius (2*2 when squared)
-                if (agent.Movement.Sprint && (objective.Location.Position - agent.Position).sqrMagnitude < 4 * agent.Objective.Location.RadiusSqr)
-                {
-                    MovementSystem.ResetGait(agent);
-                }
-                
-                continue;
-            }
-            
-            Log.Debug($"{agent} received new objective {agent.Objective.Location}, submitting move order");
-            movementSystem.MoveToByPath(agent, objective.Location.Position, sprint: true);
-        }
-    }
-
-    public override void Activate(Agent entity)
-    {
-        base.Activate(entity);
-
-        var location = entity.Objective.Location;
-        
-        if (location == null)
-        {
-            return;
-        }
-        
-        // Check if we are already moving to our target
-        if (entity.Movement.Status == MovementStatus.Moving)
-        {
-            if ((entity.Movement.Target - location.Position).sqrMagnitude <= location.RadiusSqr)
-            {
-                return;
+                case ObjectiveStatus.None:
+                    Log.Debug($"{agent} received new objective {agent.Objective.Location}, submitting move order");
+                    movementSystem.MoveToByPath(agent, objective.Location.Position, sprint: true);
+                    objective.Status = ObjectiveStatus.Moving;
+                    break;
+                case ObjectiveStatus.Moving:
+                    if (agent.Movement.HasPath && objective.ArrivalPath != agent.Movement.Path)
+                    {
+                        objective.ArrivalPath = agent.Movement.Path;
+                    }
+                    
+                    var distanceSqr = (objective.Location.Position - agent.Position).sqrMagnitude;
+                    
+                    // Stop sprinting within 2x the radius (2*2 when squared)
+                    if (agent.Movement.Sprint && distanceSqr < 4 * agent.Objective.Location.RadiusSqr)
+                    {
+                        MovementSystem.ResetGait(agent);
+                    }
+                    
+                    // If we got within the objective radius, we don't care whether the movement failed, we consider it a success 
+                    if (distanceSqr <= objective.Location.RadiusSqr)
+                    {
+                        objective.Status = ObjectiveStatus.Finished;
+                        break;
+                    }
+                    
+                    if (agent.Movement.Status == MovementStatus.Failed)
+                    {
+                        objective.Status = ObjectiveStatus.Failed;
+                    }
+                    break;
+                case ObjectiveStatus.Finished:
+                case ObjectiveStatus.Failed:
+                default:
+                    break;
             }
         }
-
-        movementSystem.MoveToByPath(entity, location.Position, sprint: true);
     }
 }

@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace Phobos.Components;
 
-public enum ObjectiveState
+public enum ObjectiveStatus
 {
     None,
     Moving,
@@ -13,12 +13,12 @@ public enum ObjectiveState
 
 public class Objective
 {
-    public ObjectiveState State;
+    public ObjectiveStatus Status;
     public Location Location;
     public Vector3[] ArrivalPath;
 
     public override string ToString()
     {
-        return $"Objective({Location})";
+        return $"Objective({Location}, status: {Status})";
     }
 }

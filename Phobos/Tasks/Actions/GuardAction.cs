@@ -53,21 +53,21 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
             var agent = ActiveEntities[i];
             var guard = agent.Guard;
 
-            if (guard.CoverPoint == null)
+            if (agent.Objective.Location == null || guard.CoverPoint == null)
             {
                 continue;
             }
 
             var coverPoint = guard.CoverPoint.Value;
 
-            switch (agent.Guard.State)
+            switch (agent.Guard.Status)
             {
-                case GuardState.None:
+                case GuardStatus.None:
                     movementSystem.MoveToByPath(agent, coverPoint.Position, sprint: true, urgency: MovementUrgency.Low);
-                    guard.State = GuardState.Moving;
+                    guard.Status = GuardStatus.Moving;
                     Log.Debug($"{agent} guarding: moving to cover point");
                     break;
-                case GuardState.Moving:
+                case GuardStatus.Moving:
                     if (agent.Movement.Status == MovementStatus.Moving) continue;
 
                     // If we are no longer moving, crouch and submit the area sweep job
@@ -77,20 +77,20 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
                     }
 
                     SubmitAreaSweepJob(agent, coverPoint);
-                    guard.State = GuardState.Sweep;
+                    guard.Status = GuardStatus.Sweep;
                     Log.Debug($"{agent} guarding: submitted area sweep job");
                     break;
-                case GuardState.Sweep:
+                case GuardStatus.Sweep:
                     if (guard.AreaSweepJob == null)
                     {
                         continue;
                     }
 
                     CompleteAreaSweepJob(guard, guard.AreaSweepJob.Value);
-                    guard.State = GuardState.Watch;
+                    guard.Status = GuardStatus.Watch;
                     Log.Debug($"{agent} guarding: completed area sweep job");
                     break;
-                case GuardState.Watch:
+                case GuardStatus.Watch:
                     if (guard.WatchDirections.Count == 0 || guard.WatchTimeout > Time.time)
                     {
                         continue;
@@ -98,12 +98,8 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
 
                     var direction = guard.WatchDirections[Random.Range(0, guard.WatchDirections.Count)];
                     var randomDirection = LookSystem.RandomDirectionInEllipse(direction, SweepAngle, 15f);
-                    LookSystem.LookToDirection(agent, randomDirection, 60f);
+                    LookSystem.LookToDirection(agent, randomDirection, 120f);
                     guard.WatchTimeout = Time.time + Random.Range(2.5f, 10f);
-
-                    DebugGizmos.Line(
-                        agent.Player.PlayerBones.Head.position, agent.Player.PlayerBones.Head.position + 25f * randomDirection, color: Color.red
-                    );
                     Log.Debug($"{agent} guarding: set new watch direction");
                     break;
                 default:
@@ -116,7 +112,7 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
     {
         var guard = entity.Guard;
 
-        guard.State = GuardState.None;
+        guard.Status = GuardStatus.None;
         guard.AreaSweepJob = null;
         guard.WatchDirections.Clear();
         guard.WatchTimeout = 0f;
@@ -145,8 +141,6 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
         var coplanarObjective = new Vector3(agent.Objective.Location.Position.x, origin.y, agent.Objective.Location.Position.z);
         var objectiveVector = coplanarObjective - origin;
         objectiveVector.Normalize();
-
-        DebugGizmos.Line(origin, origin - 25f * objectiveVector, expiretime: 0f, color: Color.yellow);
 
         // Add vector to and away from the objective
         _candidateBuffer.Add(objectiveVector);
@@ -181,8 +175,6 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
                 var direction = target - origin;
                 direction.Normalize();
                 _candidateBuffer.Add(direction);
-
-                DebugGizmos.Line(origin, target, expiretime: 0f, color: Color.magenta);
             }
         }
 
@@ -247,9 +239,8 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
         {
             var cmd = job.Commands[i];
             var hit = job.Hits[i];
-
+            
             var distance = hit.collider == null ? cmd.distance : hit.distance;
-
             _sortBuffer.Add(new(distance, cmd.direction));
         }
 
@@ -263,7 +254,6 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
         
         for (var i = 1; i < limit; i++)
         {
-            Log.Debug($"picked item direction: {_sortBuffer[i]}");
             guard.WatchDirections.Add(_sortBuffer[^i].Item2);
         }
     }
