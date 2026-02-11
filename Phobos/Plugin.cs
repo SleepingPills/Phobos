@@ -23,7 +23,7 @@ namespace Phobos;
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 public class Plugin : BaseUnityPlugin
 {
-    public const string PhobosVersion = "0.2.0";
+    public const string PhobosVersion = "0.2.1";
 
     public static ManualLogSource Log;
 

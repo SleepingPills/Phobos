@@ -1,5 +1,4 @@
-﻿using System;
-using Phobos.Components;
+﻿using Phobos.Components;
 using Phobos.Data;
 using Phobos.Diag;
 using Phobos.Entities;
@@ -21,7 +20,7 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
         {
             var agent = agents[i];
             var location = agent.Objective.Location;
-            
+
             // If we don't have an objective or the movement failed
             if (location == null || agent.Objective.Status is ObjectiveStatus.Failed or ObjectiveStatus.Finished)
             {
@@ -64,26 +63,27 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
                     {
                         objective.ArrivalPath = agent.Movement.Path;
                     }
-                    
+
                     var distanceSqr = (objective.Location.Position - agent.Position).sqrMagnitude;
-                    
+
                     // Stop sprinting within 2x the radius (2*2 when squared)
                     if (agent.Movement.Sprint && distanceSqr < 4 * agent.Objective.Location.RadiusSqr)
                     {
                         MovementSystem.ResetGait(agent);
                     }
-                    
+
                     // If we got within the objective radius, we don't care whether the movement failed, we consider it a success 
                     if (distanceSqr <= objective.Location.RadiusSqr)
                     {
                         objective.Status = ObjectiveStatus.Finished;
                         break;
                     }
-                    
+
                     if (agent.Movement.Status == MovementStatus.Failed)
                     {
                         objective.Status = ObjectiveStatus.Failed;
                     }
+
                     break;
                 case ObjectiveStatus.Finished:
                 case ObjectiveStatus.Failed:
@@ -91,5 +91,16 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
                     break;
             }
         }
+    }
+
+    protected override void Deactivate(Agent entity)
+    {
+        if (entity.Objective.Status is ObjectiveStatus.Finished or ObjectiveStatus.Failed)
+        {
+            return;
+        }
+        
+        // Reset the status if the bot was not failed/finished otherwise it'll not resubmit the move order the next time we are activated
+        entity.Objective.Status =  ObjectiveStatus.None;
     }
 }
