@@ -15,7 +15,8 @@ namespace Phobos.Systems;
 
 public class MovementSystem
 {
-    private const float TargetEpsSqr = 1.5f * 1.5f;
+    private const float TargetEps = 1.5f;
+    private const float TargetEpsSqr = TargetEps * TargetEps;
     private const float CornerWalkEpsSqr = 0.35f * 0.35f;
     private const float CornerSprintEpsSqr = 0.6f * 0.6f;
     private const int RetryLimit = 10;
@@ -98,6 +99,11 @@ public class MovementSystem
         MovementUrgency urgency = MovementUrgency.Medium
     )
     {
+        if (NavMesh.SamplePosition(destination, out var hit, TargetEps, NavMesh.AllAreas))
+        {
+            destination = hit.position;
+        }
+        
         // Generally, calling code can determine whether the current movement target is set correctly by checking this value.
         // As such, the target to be set immediately to ensure that these checks are correctly done.
         agent.Movement.Target = destination;
@@ -131,8 +137,15 @@ public class MovementSystem
 
     private void ScheduleMoveJob(Agent agent, Vector3 destination)
     {
+        var origin = agent.Position;
+        
+        if (NavMesh.SamplePosition(origin, out var hit, TargetEps, NavMesh.AllAreas))
+        {
+            origin = hit.position;
+        }
+        
         // Queues up a pathfinding job, once that's ready, we move the bot along the path.
-        var job = _navJobExecutor.Submit(agent.Position, destination);
+        var job = _navJobExecutor.Submit(origin, destination);
         _moveJobs.Enqueue((agent, job));
     }
 
