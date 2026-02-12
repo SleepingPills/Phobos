@@ -125,9 +125,12 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
                 agentObjective.Location = squadObjective.Location;
                 agentObjective.Status = ObjectiveStatus.None;
                 
+                // We ensure that we always pick a valid cover point even if the squad size has somehow grown since we generated the list 
+                var coverPointIdx = i % squadObjective.CoverPoints.Count;
+                
                 if (squadObjective.Location != null)
                 {
-                    agent.Guard.CoverPoint = squadObjective.CoverPoints[i];
+                    agent.Guard.CoverPoint = squadObjective.CoverPoints[coverPointIdx];
                 }
                 
                 Log.Debug($"{agent} assigned objective {squadObjective.Location}");
@@ -185,7 +188,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
         objective.Location = newLocation;
         objective.Status = SquadObjectiveState.Active;
         
-        ShufflePickCoverPoints(objective, squad.TargetMembersCount);
+        ShufflePickCoverPoints(objective, Math.Max(squad.TargetMembersCount, squad.Size));
         
         ResetDuration(objective, _moveTimeout.SampleGaussian());
 

@@ -23,7 +23,7 @@ namespace Phobos;
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global")]
 public class Plugin : BaseUnityPlugin
 {
-    public const string PhobosVersion = "0.2.1";
+    public const string PhobosVersion = "0.2.2";
 
     public static ManualLogSource Log;
 
@@ -112,7 +112,7 @@ public class Plugin : BaseUnityPlugin
 
     private void SetupConfig()
     {
-        const string general = "01. General V1";
+        const string general = "01. General V2";
         const string objectives = "02. Objectives V1";
         const string zones = "03. Zones V1";
         const string debug = "XX. Diagnostics V1";
@@ -120,7 +120,7 @@ public class Plugin : BaseUnityPlugin
         /*
          * General
          */
-        ScavSquadsEnabled = Config.Bind(general, "Brown Tide (RESTART)", false, new ConfigDescription(
+        ScavSquadsEnabled = Config.Bind(general, "Brown Tide (RESTART)", true, new ConfigDescription(
             "Allows scavs to form squads. Beware! They'll tend to congeal into massive tides that sweep over the map.",
             null,
             new ConfigurationManagerAttributes { Order = 1 }
